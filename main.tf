@@ -42,6 +42,13 @@ locals {
       required_checks = ["required"]
       renovate        = { automerge_variable = "BAIKAL_AUTOMERGE" }
     }
+    librespeed = {
+      name            = "librespeed-oci-image"
+      description     = "LibreSpeed OCI Image using FrankenPHP + distroless debian. Security hardened: zero capabilities, read-only root, no shell"
+      auto_init       = true
+      required_checks = ["required"]
+      renovate        = { automerge_variable = "LIBRESPEED_AUTOMERGE" }
+    }
   }
 }
 
