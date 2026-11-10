@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
+#
+# Third-party actions any divbast workflow may use, one owner/repo@* per
+# line. GitHub's own (actions/*, github/*) are allowed separately, and the
+# org requires every action to be pinned to a full SHA.
+docker/login-action@*
+docker/setup-buildx-action@*
+jdx/mise-action@*
+renovatebot/github-action@*
+shivammathur/setup-php@*
