@@ -41,5 +41,5 @@ import {
 # (integrations/terraform-provider-github#3611), so it is imported too.
 import {
   to = module.repository["infra"].github_repository_environment_deployment_policy.extra["apply"]
-  id = "infra:apply:<O6 policy id>"
+  id = "infra:apply:66136973"
 }

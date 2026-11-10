@@ -16,10 +16,10 @@ terraform {
   # tofu shares one concurrency group instead. Credentials come from
   # AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
   backend "s3" {
-    bucket                      = "<O2 bucket>"
+    bucket                      = "divbast-tofu-state"
     key                         = "org/terraform.tfstate"
-    region                      = "<O2 region>"
-    endpoints                   = { s3 = "https://s3.<O2 region>.backblazeb2.com" }
+    region                      = "us-west-004"
+    endpoints                   = { s3 = "https://s3.us-west-004.backblazeb2.com" }
     use_path_style              = true
     skip_credentials_validation = true
     skip_region_validation      = true
