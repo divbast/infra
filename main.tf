@@ -36,6 +36,12 @@ locals {
       # GitHub reserves variable names starting with GITHUB_.
       renovate = { automerge_variable = "DOTGITHUB_AUTOMERGE" }
     }
+    baikal = {
+      name            = "baikal-oci-image"
+      description     = "Baikal OCI Image using FrankenPHP + distroless debian. Security hardened: zero capabilities, read-only root, no shell"
+      required_checks = ["required"]
+      renovate        = { automerge_variable = "BAIKAL_AUTOMERGE" }
+    }
   }
 }
 
