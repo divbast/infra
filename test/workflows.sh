@@ -34,6 +34,27 @@ for f in plan apply drift; do
     grep -q 'cancel-in-progress: false$' "${file}" || fail "${file}: a newer run could cancel an apply"
 done
 
+# A skipped job reports success, even as a required check, so a fork's PR
+# must fail the plan job rather than skip it.
+plan_job=$(awk '/^  plan:/{inside=1; next} inside && /^  [a-z]/{inside=0} inside' "${dir}/plan.yml" 2>/dev/null || true)
+if grep -qE '^    if:' <<<"${plan_job}"; then
+    fail "${dir}/plan.yml: the plan job has a job-level if, which skips (and so passes) on a fork's PR"
+fi
+grep -q "Refuse a fork's pull request" <<<"${plan_job}" \
+    || fail "${dir}/plan.yml: no step failing a fork's pull request"
+
+for f in plan apply drift; do
+    file="${dir}/${f}.yml"
+    [[ -f "${file}" ]] || continue
+    # The jobs holding the admin token install only what they run.
+    grep -qE '^          install_args: aqua:opentofu/opentofu aqua:jqlang/jq$' "${file}" \
+        || fail "${file}: mise-action installs more than tofu and jq"
+    # Secrets reach only the steps that use them, never every step.
+    if grep -nE '^      (AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|TF_VAR_[a-z_]+):' "${file}"; then
+        fail "${file}: credentials in job-level env are visible to every step"
+    fi
+done
+
 # tofu show -json prints sensitive values in full; the repo is public.
 while IFS= read -r line; do
     [[ ${line} =~ tofu\ show\ -json[^|]*\|\ *jq\ -e.*\.address ]] \

@@ -25,19 +25,20 @@ jobs:
       queue: max
     permissions:
       contents: read # checkout
+    # Credentials are passed to each step that needs them, never set for
+    # the whole job, so the toolchain install and the token action see none.
     env:
-      AWS_ACCESS_KEY_ID: ${{ vars.B2_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
-      TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}
-      TF_VAR_renovate_app_client_id: ${{ vars.RENOVATE_APP_CLIENT_ID }}
-      TF_VAR_renovate_app_private_key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
       TF_IN_AUTOMATION: 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
+      # Only what this job runs: every other tool in mise.toml would be one
+      # more download executing next to the admin token.
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          install_args: aqua:opentofu/opentofu aqua:jqlang/jq
 
       - id: token
         # Org-wide with the App's full permissions, which is what managing the
@@ -55,21 +56,38 @@ jobs:
         run: ': "${GITHUB_TOKEN:?the App token is empty}"'
 
       - name: Initialise
+        env:
+          AWS_ACCESS_KEY_ID: ${{ vars.B2_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}
         run: tofu init -input=false -lockfile=readonly
 
       - name: Plan
         env:
+          AWS_ACCESS_KEY_ID: ${{ vars.B2_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}
+          TF_VAR_renovate_app_client_id: ${{ vars.RENOVATE_APP_CLIENT_ID }}
+          TF_VAR_renovate_app_private_key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         run: tofu plan -input=false -out=tfplan
 
       - name: Apply
         env:
+          AWS_ACCESS_KEY_ID: ${{ vars.B2_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}
+          TF_VAR_renovate_app_client_id: ${{ vars.RENOVATE_APP_CLIENT_ID }}
+          TF_VAR_renovate_app_private_key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         run: tofu apply -input=false tfplan
 
       # What the provider cannot manage, set through the REST API.
       - name: Set the settings outside the provider
         env:
+          AWS_ACCESS_KEY_ID: ${{ vars.B2_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}
           GH_TOKEN: ${{ steps.token.outputs.token }}
         run: |
           mapfile -t repos < <(tofu output -json repository_names | jq -r '.[]')
@@ -77,6 +95,8 @@ jobs:
 
       - name: Summarise
         if: always()
+        env:
+          TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}
         run: |
           if [ -f tfplan ]; then
             {
