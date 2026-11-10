@@ -67,8 +67,10 @@ merging back on.
    repositories.
 5. The org-owned App `divbast-renovate`, webhook off. Repository
    permissions: Checks, Contents, Issues, Pull requests, Commit statuses
-   and Workflows read and write; Metadata read. Installed on all
-   repositories.
+   and Workflows read and write; Dependabot alerts and Metadata read.
+   Installed on all repositories. Every repository here has Dependabot
+   alerts on, and without read access to them Renovate's dashboard warns
+   that it cannot see them.
 6. This repository, created empty (its first commit is pushed as `main`),
    and its environments `plan` (any branch) and `apply` (main only), each
    holding:
