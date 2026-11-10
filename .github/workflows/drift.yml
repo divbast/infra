@@ -1,0 +1,76 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
+
+# Red whenever the live org differs from main, including the settings the
+# provider cannot manage, which checks.tf reads back.
+name: drift
+
+on:
+  schedule:
+    - cron: '43 19 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  drift:
+    name: drift
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    environment: apply
+    concurrency:
+      group: tofu
+      cancel-in-progress: false
+      queue: max
+    permissions:
+      contents: read # checkout
+    env:
+      AWS_ACCESS_KEY_ID: ${{ vars.B2_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+      TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}
+      TF_VAR_renovate_app_client_id: ${{ vars.RENOVATE_APP_CLIENT_ID }}
+      TF_VAR_renovate_app_private_key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+      TF_IN_AUTOMATION: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+
+      - id: token
+        # Org-wide with the App's full permissions, which is what managing the
+        # org takes; .github/zizmor.yml says why zizmor's github-app audit is
+        # set aside here.
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.INFRA_APP_CLIENT_ID }}
+          private-key: ${{ secrets.INFRA_APP_PRIVATE_KEY }}
+          owner: divbast
+
+      - name: Refuse an empty token
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+        run: ': "${GITHUB_TOKEN:?the App token is empty}"'
+
+      - name: Initialise
+        run: tofu init -input=false -lockfile=readonly
+
+      - name: Plan
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          code=0
+          tofu plan -input=false -detailed-exitcode -out=tfplan || code=$?
+          if [ "${code}" -eq 2 ]; then
+            tofu show -no-color tfplan
+            echo 'drift: the live org differs from main' >&2
+          fi
+          exit "${code}"
+
+      # A failed check is only a warning in a plan. Only addresses are
+      # printed: the JSON plan holds sensitive values in full.
+      - name: Fail on any failed check
+        shell: bash
+        run: |
+          tofu show -json tfplan | jq -e -r '[.checks[]? | select(.status != "pass") | .address.to_display] | (.[] | "check failed: " + .), (length == 0)'
