@@ -69,8 +69,9 @@ merging back on.
    permissions: Checks, Contents, Issues, Pull requests, Commit statuses
    and Workflows read and write; Metadata read. Installed on all
    repositories.
-6. This repository, and its environments `plan` (any branch) and `apply`
-   (main only), each holding:
+6. This repository, created empty (its first commit is pushed as `main`),
+   and its environments `plan` (any branch) and `apply` (main only), each
+   holding:
    - variables `INFRA_APP_CLIENT_ID`, `RENOVATE_APP_CLIENT_ID`, `B2_KEY_ID`
    - secrets `INFRA_APP_PRIVATE_KEY`, `RENOVATE_APP_PRIVATE_KEY`,
      `STATE_PASSPHRASE`, `B2_APPLICATION_KEY`
