@@ -55,7 +55,9 @@ resource "github_repository_vulnerability_alerts" "this" {
 }
 
 resource "github_repository_dependabot_security_updates" "this" {
-  repository = github_repository.this.name
+  # Through the alerts resource, so this waits for it: GitHub refuses to
+  # configure security updates while alerts are off (422).
+  repository = github_repository_vulnerability_alerts.this.repository
   # Renovate does the updates.
   enabled = false
 }
