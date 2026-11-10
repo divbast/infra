@@ -71,6 +71,12 @@ fi
 awk '/^  required:/{inside=1; next} inside && /^  [a-z]/{inside=0} inside' "${dir}/ci.yml" 2>/dev/null \
     | grep -q 'if: always()' || fail "${dir}/ci.yml: the required job does not run always()"
 
+# Renovate's token is narrowed to named permissions, so one the App gains
+# never reaches Renovate unless it is named here too. Without Dependabot
+# alerts read, every dashboard warns it cannot see the repo's alerts.
+grep -q 'permission-vulnerability-alerts: read$' "${dir}/renovate.yml" \
+    || fail "${dir}/renovate.yml: Renovate's token cannot read Dependabot alerts"
+
 if [[ ${failed} -ne 0 ]]; then
     exit 1
 fi
