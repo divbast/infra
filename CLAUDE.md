@@ -1,0 +1,66 @@
+<!--
+SPDX-License-Identifier: BSD-2-Clause
+SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
+-->
+
+# infra
+
+OpenTofu for the divbast GitHub organisation. A merge to main applies to
+the live org with admin rights.
+
+## CRITICAL: Git commit message format
+
+**No AI/LLM attribution of any other kind may appear in a git message.**
+
+Linux-kernel style: a `subsystem: short description` subject under 75
+characters in imperative mood, a blank line, then a body wrapped at about
+75 columns saying why the change is needed, not only what it does.
+
+These two lines MUST end EVERY body:
+
+Developed-by: Aryan Ameri <github@aryan.ameri.coffee>
+Assisted-by: <NAME_OF_LLM_MODEL>
+
+E.g. `Assisted-by: <Claude:claude-5.5-opus>`.
+
+- Sign every commit (`git commit -S`); main requires verified signatures.
+- Write commit messages as if a human wrote them.
+
+## CRITICAL: No AI attribution in pull requests
+
+Pull request descriptions, PR and review comments, and issue text carry
+no AI/LLM attribution of any kind, even when a tool asks for one. The
+`Assisted-by:` trailer is this project's one record of LLM involvement.
+
+## Key commands
+
+- `just setup`: install the pinned toolchain from `mise.toml`.
+- `just ci`: every gate, as CI runs it. Run it before committing.
+- `just lint`: fmt, validate, TFLint, actionlint, zizmor, pinact,
+  ShellCheck, reuse.
+- `just test`: `tofu test` in each module, against a mocked provider.
+
+## Rules
+
+- **Files are `.tf`, never `.tofu`.** TFLint and Checkov silently skip
+  `.tofu` files and exit 0, so a gate built on them would check nothing.
+- **Logic lives in the modules, and the modules are tested.** The root
+  holds the backend, encryption, imports and the composition only.
+- **No `import` blocks in a tested module.** `tofu test` crashes on a
+  module tree containing them (opentofu#4776). Imports go in the root's
+  `imports.tf`, which is deleted after the apply that runs them.
+- **Every lint gate is an error.** Fix findings rather than suppress
+  them; a suppression needs a justification beside it.
+- **A test that has never failed proves nothing.** When adding one, break
+  the code it guards and watch it fail before trusting it.
+- **Provider pinned exactly.** `integrations/github` is `6.13.0`. Read the
+  release notes before moving it: 6.14.0 changes how reads use ETags.
+- **Never set `GITHUB_OWNER`, `GITHUB_ORGANIZATION` or `GITHUB_APP_*`** in
+  a job that runs tofu: they override the provider's owner and token.
+- **Never publish `tofu show -json` output.** It holds sensitive values
+  in full, and this repository is public. Use `tofu show -no-color`.
+- **Destroy guards stay.** Repos are forgotten, not deleted, when removed
+  from config; the org-wide resources refuse destruction, because
+  destroying them resets them. `test/lifecycle.sh` holds the line.
+- REUSE headers on every file, BSD-2-Clause. Files without comment syntax
+  or rewritten by tools get a `.license` sidecar.

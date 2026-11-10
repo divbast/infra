@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
+
+rules:
+  # github-app flags a token covering every repo of the installation, with
+  # the App's full permissions. Managing the org's settings and every repo
+  # is what the divbast-infra App is for, so org-wide is the point. The
+  # permissions cannot be narrowed either: the action has no
+  # permission-variables input (actions/create-github-app-token#231), and
+  # the provider manages repo variables. Renovate's workflow is not listed:
+  # its token is narrowed to one repo and named permissions.
+  github-app:
+    ignore:
+      - plan.yml
+      - apply.yml
+      - drift.yml

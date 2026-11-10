@@ -1,0 +1,111 @@
+<!--
+SPDX-License-Identifier: BSD-2-Clause
+SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
+-->
+
+# infra
+
+The divbast organisation, as OpenTofu: its settings, its Actions policy,
+the maintainers team, and every repository with its rulesets,
+environments and Renovate wiring. A setting changed by hand in the UI
+turns the next daily drift run red.
+
+- `modules/organization`: org settings, Actions policy, workflow token
+  defaults, the maintainers team.
+- `modules/repository`: one repository's baseline: public; merge commits
+  and squash only; signed commits, a PR and passing checks on the default
+  branch; tags for org admins only; Renovate's environment and kill switch.
+- `main.tf`: every repository, as one entry in `local.repositories`.
+- `checks.tf` and `scripts/assert-unmanaged.sh`: the settings the provider
+  cannot manage (private vulnerability reporting, the fork-PR approval
+  policy, no default code security configuration).
+
+## How it runs
+
+| Workflow | When | What |
+|---|---|---|
+| `ci` | every PR and push | every gate (`just ci`), no secrets |
+| `plan` | PRs from this repository | the plan against the live org, on the run's summary page |
+| `apply` | push to main, or by hand | a fresh plan, applied, then `assert-unmanaged.sh` |
+| `drift` | daily, or by hand | red if the org differs from main or a check fails |
+| `renovate` | daily, on merges, on CI finishing | updates; merges its own PRs only when their plan is empty |
+
+State lives in a private Backblaze B2 bucket, encrypted by OpenTofu
+before it leaves the runner. B2 has no state locking, so every workflow
+that runs tofu queues on one concurrency group.
+
+## Adding a repository
+
+Add one entry to `local.repositories` in `main.tf` and open a PR. The
+`divbast-infra` and `divbast-renovate` Apps are installed on all
+repositories, so a new one needs nothing by hand. A repo that runs
+Renovate names its kill switch, e.g. `BAIKAL_AUTOMERGE`.
+
+## Stopping Renovate's merges
+
+```sh
+gh variable set BAIKAL_AUTOMERGE --body disabled -R divbast/baikal-oci-image
+```
+
+Any value but `enabled` stops merging from the next run. OpenTofu creates
+the variable and then leaves its value alone, so an apply never turns
+merging back on.
+
+## Setup, done once by hand
+
+1. Require two-factor authentication for members (org Settings, then
+   Authentication security).
+2. Backblaze B2: a private bucket, keeping all versions, and two
+   application keys restricted to it, one read-only (`listBuckets`,
+   `listFiles`, `readFiles`) and one read-write (those plus `writeFiles`,
+   `deleteFiles`). The bucket's name and region go in `versions.tf`.
+3. A state passphrase: `openssl rand -base64 48`.
+4. The org-owned App `divbast-infra`, webhook off. Repository permissions:
+   Administration, Contents, Environments, Secrets and Variables read and
+   write; Actions and Metadata read. Organization permissions:
+   Administration and Members read and write. Installed on all
+   repositories.
+5. The org-owned App `divbast-renovate`, webhook off. Repository
+   permissions: Checks, Contents, Issues, Pull requests, Commit statuses
+   and Workflows read and write; Metadata read. Installed on all
+   repositories.
+6. This repository, created empty (its first commit is pushed as `main`),
+   and its environments `plan` (any branch) and `apply` (main only), each
+   holding:
+   - variables `INFRA_APP_CLIENT_ID`, `RENOVATE_APP_CLIENT_ID`, `B2_KEY_ID`
+   - secrets `INFRA_APP_PRIVATE_KEY`, `RENOVATE_APP_PRIVATE_KEY`,
+     `STATE_PASSPHRASE`, `B2_APPLICATION_KEY`
+
+   `plan` gets the read-only B2 key and `apply` the read-write one.
+   OpenTofu manages the environments but never these values: it would
+   need its own credentials as inputs.
+7. Verify `divbast.ameri.coffee` (org Settings, then Verified and approved
+   domains) with the DNS TXT record GitHub shows.
+8. No payment method on the org: usage past the free allowance is then
+   blocked, not billed.
+
+## Settings with no API
+
+These stay manual, and the drift run cannot see them:
+
+- the two-factor requirement and domain verification;
+- each package's visibility and its Actions access: a new image starts
+  private and must be made public in its package settings.
+
+## Break glass
+
+Fix the problem in the UI first, then reconcile: dispatch `apply`, or
+change the config by PR so the next apply agrees with what was done. To
+run tofu locally, keep offline the read-write B2 key, the state
+passphrase and the `divbast-infra` private key, and mint a short-lived
+installation token from that key. Never use a long-lived personal token:
+provider 6.13.0 can keep stale reads across runs with one
+(integrations/terraform-provider-github#3519).
+
+## Rotating the state passphrase
+
+Add a `v2` key provider and method in `versions.tf`, with `v1` as the
+method's `fallback`, and supply both passphrases. Apply once, which
+rewrites state under `v2`, then remove `v1` and the old passphrase. The
+key providers are named by version because the metadata stored with the
+state is keyed by name.

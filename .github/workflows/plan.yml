@@ -1,0 +1,137 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
+
+# What a pull request would change, against live state.
+name: plan
+
+on:
+  pull_request:
+
+permissions: {}
+
+# A newer push to a PR supersedes its older plan. The plan job also
+# queues on the repo-wide tofu group below.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    environment: plan
+    # B2 has no state locking, so every tofu run in this repo queues on one
+    # group, and a waiting run never cancels another.
+    concurrency:
+      group: tofu
+      cancel-in-progress: false
+      queue: max
+    permissions:
+      contents: read # checkout
+    outputs:
+      changes: ${{ steps.plan.outputs.changes }}
+    # Credentials are passed to each step that needs them, never set for
+    # the whole job, so the toolchain install and the token action see none.
+    env:
+      TF_IN_AUTOMATION: 'true'
+    steps:
+      # A fork's PR gets no secrets and must never run with the org-admin
+      # key. It fails here rather than skipping the job: a skipped job reports
+      # success, even as a required check, as if a plan had run.
+      - name: Refuse a fork's pull request
+        env:
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          if [ "${HEAD_REPO}" != "${THIS_REPO}" ]; then
+            echo "no plan for a fork's pull request; a maintainer re-opens it from a branch here" >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Only what this job runs: every other tool in mise.toml would be one
+      # more download executing next to the admin token.
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          install_args: aqua:opentofu/opentofu aqua:jqlang/jq
+
+      - id: token
+        # Org-wide with the App's full permissions, which is what managing the
+        # org takes; .github/zizmor.yml says why zizmor's github-app audit is
+        # set aside here.
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.INFRA_APP_CLIENT_ID }}
+          private-key: ${{ secrets.INFRA_APP_PRIVATE_KEY }}
+          owner: divbast
+
+      # With no token the provider falls back to gh's, or to anonymous
+      # access, without an error (integrations/terraform-provider-github#3562).
+      - name: Refuse an empty token
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+        run: ': "${GITHUB_TOKEN:?the App token is empty}"'
+
+      - name: Initialise
+        env:
+          AWS_ACCESS_KEY_ID: ${{ vars.B2_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}
+        run: tofu init -input=false -lockfile=readonly
+
+      - id: plan
+        name: Plan
+        env:
+          AWS_ACCESS_KEY_ID: ${{ vars.B2_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}
+          TF_VAR_renovate_app_client_id: ${{ vars.RENOVATE_APP_CLIENT_ID }}
+          TF_VAR_renovate_app_private_key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          code=0
+          tofu plan -input=false -detailed-exitcode -out=tfplan || code=$?
+          case "${code}" in
+            0) echo 'changes=false' >> "${GITHUB_OUTPUT}" ;;
+            2) echo 'changes=true' >> "${GITHUB_OUTPUT}" ;;
+            *) exit "${code}" ;;
+          esac
+
+      # The human-readable plan hides sensitive values; the JSON form would
+      # not, and this repository is public.
+      - name: Summarise
+        env:
+          TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}
+        run: |
+          {
+            echo '<details><summary>Plan</summary>'
+            echo
+            echo '```'
+            tofu show -no-color tfplan
+            echo '```'
+            echo '</details>'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  # Renovate merges its own PR here only when the plan is empty. Not a
+  # required check: red stops Renovate, and a person can still read the
+  # plan and merge.
+  plan-empty:
+    name: plan-empty
+    needs: [plan]
+    if: startsWith(github.head_ref, 'renovate/')
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Fail when the plan would change the org
+        env:
+          CHANGES: ${{ needs.plan.outputs.changes }}
+        run: |
+          if [ "${CHANGES}" != false ]; then
+            echo 'the plan changes the org; this PR waits for a person' >&2
+            exit 1
+          fi

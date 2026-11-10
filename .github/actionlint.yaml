@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
+
+# actionlint 1.7.12, the latest release, predates two GitHub features this
+# repository uses. Drop each entry once a release knows them.
+
+# GitHub's ubuntu-26.04 hosted runner, not a self-hosted one; this is the
+# only way to teach actionlint a label (rhysd/actionlint#683).
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04
+
+paths:
+  .github/workflows/*.yml:
+    ignore:
+      # concurrency.queue, GA on 2026-05-07: without it a newer pending run
+      # cancels the older one, which must never happen to an apply
+      # (rhysd/actionlint#654).
+      - 'unexpected key "queue" for "concurrency" section'
