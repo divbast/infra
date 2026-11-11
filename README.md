@@ -14,11 +14,27 @@ turns the next daily drift run red.
   defaults, the maintainers team.
 - `modules/repository`: one repository's baseline: public; merge commits
   and squash only; signed commits, a PR and passing checks on the default
-  branch; tags for org admins only; Renovate's environment and kill switch.
+  branch; tags guarded by two rulesets (below); Renovate's environment and
+  kill switch.
 - `main.tf`: every repository, as one entry in `local.repositories`.
 - `checks.tf` and `scripts/assert-unmanaged.sh`: the settings the provider
   cannot manage (private vulnerability reporting, the fork-PR approval
   policy, no default code security configuration).
+
+## Tags
+
+A ruleset's bypass list covers every rule in it, so each repository has
+two tag rulesets, both over every tag:
+
+- `tag-creation` blocks creating a tag. Org admins bypass it, and so do
+  the GitHub Apps in the repo's `tag_creator_app_ids`, named by App ID
+  (`gh api /apps/<slug> --jq .id`), not by installation ID.
+- `tag-update-deletion` blocks moving and deleting a tag. Only org admins
+  bypass it, whatever `tag_creator_app_ids` holds.
+
+`ci` names `divbast-renovate` (App ID 5691200) as its tag creator: ci's
+release workflow tags and releases every green merge to main as that
+App, from ci's main-only `renovate` environment.
 
 ## How it runs
 
@@ -39,7 +55,9 @@ that runs tofu queues on one concurrency group.
 Add one entry to `local.repositories` in `main.tf` and open a PR. The
 `divbast-infra` and `divbast-renovate` Apps are installed on all
 repositories, so a new one needs nothing by hand. A repo that runs
-Renovate names its kill switch, e.g. `BAIKAL_AUTOMERGE`.
+Renovate names its kill switch, e.g. `BAIKAL_AUTOMERGE`. A repo whose
+releases an App tags names that App in `tag_creator_app_ids`, as `ci`
+does.
 
 ## Stopping Renovate's merges
 
@@ -70,7 +88,8 @@ merging back on.
    and Workflows read and write; Dependabot alerts and Metadata read.
    Installed on all repositories. Every repository here has Dependabot
    alerts on, and without read access to them Renovate's dashboard warns
-   that it cannot see them.
+   that it cannot see them. Its App ID, 5691200, is `renovate_app_id` in
+   `main.tf`.
 6. This repository, created empty (its first commit is pushed as `main`),
    and its environments `plan` (any branch) and `apply` (main only), each
    holding:

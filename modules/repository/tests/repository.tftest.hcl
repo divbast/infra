@@ -144,26 +144,81 @@ run "no_checks_no_status_rule" {
   }
 }
 
-run "tags_are_admin_only" {
+run "tag_creation_is_admin_only" {
   command = plan
 
   assert {
     condition = alltrue([
-      github_repository_ruleset.tags.target == "tag",
-      github_repository_ruleset.tags.conditions[0].ref_name[0].include == tolist(["~ALL"]),
-      github_repository_ruleset.tags.rules[0].creation == true,
-      github_repository_ruleset.tags.rules[0].update == true,
-      github_repository_ruleset.tags.rules[0].deletion == true,
+      github_repository_ruleset.tag_creation.target == "tag",
+      github_repository_ruleset.tag_creation.enforcement == "active",
+      github_repository_ruleset.tag_creation.conditions[0].ref_name[0].include == tolist(["~ALL"]),
+      github_repository_ruleset.tag_creation.rules[0].creation == true,
     ])
-    error_message = "Every tag is created, moved and deleted by bypass only."
+    error_message = "Every tag is created by bypass only."
+  }
+  assert {
+    # A bypass here must never reach moving or deleting a tag.
+    condition = alltrue([
+      github_repository_ruleset.tag_creation.rules[0].update != true,
+      github_repository_ruleset.tag_creation.rules[0].deletion != true,
+    ])
+    error_message = "The creation ruleset blocks creation and nothing else."
   }
   assert {
     condition = alltrue([
-      length(github_repository_ruleset.tags.bypass_actors) == 1,
-      github_repository_ruleset.tags.bypass_actors[0].actor_type == "OrganizationAdmin",
-      github_repository_ruleset.tags.bypass_actors[0].bypass_mode == "always",
+      length(github_repository_ruleset.tag_creation.bypass_actors) == 1,
+      github_repository_ruleset.tag_creation.bypass_actors[0].actor_type == "OrganizationAdmin",
+      github_repository_ruleset.tag_creation.bypass_actors[0].bypass_mode == "always",
     ])
-    error_message = "Only org admins touch tags."
+    error_message = "With no tag creator named, only org admins create tags."
+  }
+}
+
+run "tag_update_deletion_is_admin_only" {
+  command = plan
+
+  assert {
+    condition = alltrue([
+      github_repository_ruleset.tag_update_deletion.target == "tag",
+      github_repository_ruleset.tag_update_deletion.enforcement == "active",
+      github_repository_ruleset.tag_update_deletion.conditions[0].ref_name[0].include == tolist(["~ALL"]),
+      github_repository_ruleset.tag_update_deletion.rules[0].update == true,
+      github_repository_ruleset.tag_update_deletion.rules[0].deletion == true,
+      github_repository_ruleset.tag_update_deletion.rules[0].creation != true,
+    ])
+    error_message = "Every tag is moved and deleted by bypass only; creation is the other ruleset's."
+  }
+  assert {
+    condition = alltrue([
+      length(github_repository_ruleset.tag_update_deletion.bypass_actors) == 1,
+      github_repository_ruleset.tag_update_deletion.bypass_actors[0].actor_type == "OrganizationAdmin",
+      github_repository_ruleset.tag_update_deletion.bypass_actors[0].bypass_mode == "always",
+    ])
+    error_message = "Only org admins move or delete tags."
+  }
+}
+
+run "tag_creators_only_create" {
+  command = plan
+
+  variables {
+    settings = { description = "x", tag_creator_app_ids = [5691200] }
+  }
+
+  assert {
+    condition = alltrue([
+      length(github_repository_ruleset.tag_creation.bypass_actors) == 2,
+      anytrue([for a in github_repository_ruleset.tag_creation.bypass_actors : a.actor_type == "OrganizationAdmin" && a.bypass_mode == "always"]),
+      anytrue([for a in github_repository_ruleset.tag_creation.bypass_actors : a.actor_type == "Integration" && a.actor_id == 5691200 && a.bypass_mode == "always"]),
+    ])
+    error_message = "A named App creates tags alongside org admins, named by its App ID."
+  }
+  assert {
+    condition = alltrue([
+      length(github_repository_ruleset.tag_update_deletion.bypass_actors) == 1,
+      github_repository_ruleset.tag_update_deletion.bypass_actors[0].actor_type == "OrganizationAdmin",
+    ])
+    error_message = "A tag creator never moves or deletes a tag."
   }
 }
 

@@ -59,6 +59,13 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   a job that runs tofu: they override the provider's owner and token.
 - **Never publish `tofu show -json` output.** It holds sensitive values
   in full, and this repository is public. Use `tofu show -no-color`.
+- **Tags take two rulesets.** A bypass covers every rule in its ruleset,
+  so `tag-creation` (org admins, plus the Apps in a repo's
+  `tag_creator_app_ids`) is separate from `tag-update-deletion` (org
+  admins only). Never add a bypass actor to `tag-update-deletion`. An App
+  is named by its App ID, never an installation ID. `tag-update-deletion`
+  waits for `tag-creation` in the graph, so moving a rule between them
+  never leaves it unenforced mid-apply; `test/ordering.sh` holds that.
 - **Destroy guards stay.** Repos are forgotten, not deleted, when removed
   from config; the org-wide resources refuse destruction, because
   destroying them resets them. `test/lifecycle.sh` holds the line.

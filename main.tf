@@ -13,9 +13,13 @@ module "organization" {
   maintainers = ["aryonoco"]
 }
 
-# Keyed by a stable slug, with the name separate, so renaming a repo is an
-# in-place update rather than a new resource.
 locals {
+  # The divbast-renovate App's App ID, which is what a ruleset bypass
+  # names: not its client ID, nor an installation ID.
+  renovate_app_id = 5691200
+
+  # Keyed by a stable slug, with the name separate, so renaming a repo is
+  # an in-place update rather than a new resource.
   repositories = {
     infra = {
       name            = "infra"
@@ -55,6 +59,9 @@ locals {
       auto_init       = true
       required_checks = ["required"]
       renovate        = { automerge_variable = "CI_AUTOMERGE" }
+      # Every green merge to main is released as vX.Y.Z by the Renovate App,
+      # from the main-only renovate environment, and callers pin those.
+      tag_creator_app_ids = [local.renovate_app_id]
     }
     renovate_config = {
       name            = "renovate-config"

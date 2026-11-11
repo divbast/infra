@@ -24,6 +24,9 @@ variable "settings" {
     # Job names whose checks must pass before a PR merges. Empty for a repo
     # with no CI.
     required_checks = optional(list(string), ["required"])
+    # App IDs of the GitHub Apps that may create tags here. Moving or
+    # deleting a tag stays with org admins whatever is listed.
+    tag_creator_app_ids = optional(list(number), [])
     # The repo-variable name of Renovate's kill switch. Null: no Renovate.
     renovate = optional(object({
       automerge_variable = string

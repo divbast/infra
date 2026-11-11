@@ -54,8 +54,47 @@ resource "github_repository_ruleset" "default_branch" {
   }
 }
 
-resource "github_repository_ruleset" "tags" {
-  name        = "tags"
+# Bypass is per ruleset, not per rule, so tags take two rulesets: an App
+# can then be let create tags without being let move or delete them.
+resource "github_repository_ruleset" "tag_creation" {
+  name        = "tag-creation"
+  repository  = github_repository.this.name
+  target      = "tag"
+  enforcement = "active"
+
+  conditions {
+    ref_name {
+      include = ["~ALL"]
+      exclude = []
+    }
+  }
+
+  bypass_actors {
+    actor_type  = "OrganizationAdmin"
+    bypass_mode = "always"
+  }
+
+  # An Integration's actor_id is the App ID (GET /apps/<slug>), not an
+  # installation ID.
+  dynamic "bypass_actors" {
+    for_each = var.settings.tag_creator_app_ids
+
+    content {
+      actor_type  = "Integration"
+      actor_id    = bypass_actors.value
+      bypass_mode = "always"
+    }
+  }
+
+  rules {
+    creation = true
+  }
+}
+
+# A tag, once it exists, is moved or deleted by an org admin or not at all.
+# Never give this ruleset another bypass actor.
+resource "github_repository_ruleset" "tag_update_deletion" {
+  name        = "tag-update-deletion"
   repository  = github_repository.this.name
   target      = "tag"
   enforcement = "active"
@@ -73,8 +112,19 @@ resource "github_repository_ruleset" "tags" {
   }
 
   rules {
-    creation = true
     update   = true
     deletion = true
   }
+
+  # This ruleset drops creation only once tag_creation exists, so no apply
+  # leaves tag creation open while the rule moves between them.
+  depends_on = [github_repository_ruleset.tag_creation]
+}
+
+# The one tags ruleset before the split. It keeps its GitHub ID and its
+# bypass list, and loses only its creation rule. Delete this block after
+# the apply that runs it.
+moved {
+  from = github_repository_ruleset.tags
+  to   = github_repository_ruleset.tag_update_deletion
 }
