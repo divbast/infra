@@ -73,7 +73,7 @@ locals {
     }
     frankenphp = {
       name            = "frankenphp"
-      description     = "Static FrankenPHP binaries for divbast's images, one per app, built from pinned sources and attested"
+      description     = "Static FrankenPHP binaries for divbast's images, one per app, built and attested in CI"
       auto_init       = true
       required_checks = ["required"]
       renovate        = { automerge_variable = "FRANKENPHP_AUTOMERGE" }
