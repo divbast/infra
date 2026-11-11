@@ -116,8 +116,9 @@ resource "github_repository_ruleset" "tag_update_deletion" {
     deletion = true
   }
 
-  # This ruleset drops creation only once tag_creation exists, so no apply
-  # leaves tag creation open while the rule moves between them.
+  # Updated only after tag_creation, so a rule moving from here into
+  # tag_creation stays enforced mid-apply. A move the other way updates
+  # tag_creation first: that apply needs this edge reversed.
   depends_on = [github_repository_ruleset.tag_creation]
 }
 

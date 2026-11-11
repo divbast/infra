@@ -64,8 +64,10 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   `tag_creator_app_ids`) is separate from `tag-update-deletion` (org
   admins only). Never add a bypass actor to `tag-update-deletion`. An App
   is named by its App ID, never an installation ID. `tag-update-deletion`
-  waits for `tag-creation` in the graph, so moving a rule between them
-  never leaves it unenforced mid-apply; `test/ordering.sh` holds that.
+  waits for `tag-creation` in the graph (`test/ordering.sh` holds the
+  edge), so a rule moving into `tag-creation` stays enforced mid-apply.
+  That holds in that direction only: moving a rule back out of
+  `tag-creation` updates it first, so that apply needs the edge reversed.
 - **Immutable releases are set by script.** Provider 6.13.0 has no
   attribute for them. A repo with `immutable_releases = true` in
   `local.repositories` gets them from `scripts/immutable-releases.sh`

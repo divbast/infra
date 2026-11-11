@@ -71,6 +71,12 @@ for script in assert-unmanaged immutable-releases; do
     fi
 done
 
+# Nothing checks a process substitution's exit status: a failing tofu
+# there leaves the list empty, and the step carries on with none.
+if grep -nE '<\(\s*tofu ' "${dir}"/*.yml; then
+    fail "tofu runs inside a process substitution, where its failure goes unnoticed"
+fi
+
 # checks.tf reads those settings back, and a failed check is only a
 # warning in a plan: the drift run must turn one red.
 grep -qF 'select(.status != "pass")' "${dir}/drift.yml" \

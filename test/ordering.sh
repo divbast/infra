@@ -23,7 +23,7 @@ need() {
 need github_repository_dependabot_security_updates.this github_repository_vulnerability_alerts.this \
     "GitHub refuses to configure security updates while alerts are off (422)"
 need github_repository_ruleset.tag_update_deletion github_repository_ruleset.tag_creation \
-    "tag creation would be open while the creation rule moves between the two"
+    "a rule moving into tag_creation would go unenforced mid-apply"
 
 if [[ ${failed} -ne 0 ]]; then
     exit 1
