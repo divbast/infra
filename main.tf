@@ -38,13 +38,13 @@ locals {
     }
     baikal = {
       name            = "baikal-oci-image"
-      description     = "Baikal OCI Image using FrankenPHP + distroless debian. Security hardened: zero capabilities, read-only root, no shell"
+      description     = "Security hardened Baikal OCI Image"
       required_checks = ["required"]
       renovate        = { automerge_variable = "BAIKAL_AUTOMERGE" }
     }
     librespeed = {
       name            = "librespeed-oci-image"
-      description     = "LibreSpeed OCI Image using FrankenPHP + distroless debian. Security hardened: zero capabilities, read-only root, no shell"
+      description     = "Security hardened LibreSpeed OCI Image"
       auto_init       = true
       required_checks = ["required"]
       renovate        = { automerge_variable = "LIBRESPEED_AUTOMERGE" }
