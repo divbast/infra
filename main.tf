@@ -38,16 +38,37 @@ locals {
     }
     baikal = {
       name            = "baikal-oci-image"
-      description     = "Baikal OCI Image using FrankenPHP + distroless debian. Security hardened: zero capabilities, read-only root, no shell"
+      description     = "Security hardened Baikal OCI Image"
       required_checks = ["required"]
       renovate        = { automerge_variable = "BAIKAL_AUTOMERGE" }
     }
     librespeed = {
       name            = "librespeed-oci-image"
-      description     = "LibreSpeed OCI Image using FrankenPHP + distroless debian. Security hardened: zero capabilities, read-only root, no shell"
+      description     = "Security hardened LibreSpeed OCI Image"
       auto_init       = true
       required_checks = ["required"]
       renovate        = { automerge_variable = "LIBRESPEED_AUTOMERGE" }
+    }
+    ci = {
+      name            = "ci"
+      description     = "Reusable workflows, shared tooling and the acceptance harness for divbast's repositories"
+      auto_init       = true
+      required_checks = ["required"]
+      renovate        = { automerge_variable = "CI_AUTOMERGE" }
+    }
+    renovate_config = {
+      name            = "renovate-config"
+      description     = "The shared Renovate preset for divbast's repositories"
+      auto_init       = true
+      required_checks = ["required"]
+      renovate        = { automerge_variable = "RENOVATE_CONFIG_AUTOMERGE" }
+    }
+    frankenphp = {
+      name            = "frankenphp"
+      description     = "Static FrankenPHP binaries for divbast's images, one per app, built from pinned sources and attested"
+      auto_init       = true
+      required_checks = ["required"]
+      renovate        = { automerge_variable = "FRANKENPHP_AUTOMERGE" }
     }
   }
 }
