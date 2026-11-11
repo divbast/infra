@@ -3,19 +3,29 @@
 # SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
 set -euo pipefail
 
-# Orderings GitHub enforces and the provider does not know about. Without
-# an edge in the graph, tofu runs the two resources in parallel and the
-# apply fails half-way. Reads the module's graph, so it needs `just init`.
+# Orderings the provider does not know about. Without an edge in the
+# graph, tofu runs the two resources in parallel: the apply fails half-way,
+# or a protection lapses while it runs. Reads the module's graph, so it
+# needs `just init`.
 
 graph=$(tofu -chdir=modules/repository graph)
+failed=0
 
-# GitHub refuses to configure Dependabot security updates while the repo's
-# vulnerability alerts are off (422), and an adopted repo can arrive with
-# them off: baikal-oci-image did.
-edge='"[root] github_repository_dependabot_security_updates.this (expand)" -> "[root] github_repository_vulnerability_alerts.this (expand)"'
-if ! grep -qF -- "${edge}" <<<"${graph}"; then
-    echo "github_repository_dependabot_security_updates does not wait for github_repository_vulnerability_alerts" >&2
+need() {
+    local from=$1 to=$2 why=$3
+    if ! grep -qF -- "\"[root] ${from} (expand)\" -> \"[root] ${to} (expand)\"" <<<"${graph}"; then
+        echo "${from} does not wait for ${to}: ${why}" >&2
+        failed=1
+    fi
+}
+
+# baikal-oci-image arrived with its vulnerability alerts off.
+need github_repository_dependabot_security_updates.this github_repository_vulnerability_alerts.this \
+    "GitHub refuses to configure security updates while alerts are off (422)"
+need github_repository_ruleset.tag_update_deletion github_repository_ruleset.tag_creation \
+    "a rule moving into tag_creation would go unenforced mid-apply"
+
+if [[ ${failed} -ne 0 ]]; then
     exit 1
 fi
-
-echo "every ordering GitHub enforces is in the graph"
+echo "every ordering the provider does not know about is in the graph"

@@ -13,9 +13,13 @@ module "organization" {
   maintainers = ["aryonoco"]
 }
 
-# Keyed by a stable slug, with the name separate, so renaming a repo is an
-# in-place update rather than a new resource.
 locals {
+  # The divbast-renovate App's App ID, which is what a ruleset bypass
+  # names: not its client ID, nor an installation ID.
+  renovate_app_id = 5691200
+
+  # Keyed by a stable slug, with the name separate, so renaming a repo is
+  # an in-place update rather than a new resource.
   repositories = {
     infra = {
       name            = "infra"
@@ -55,6 +59,10 @@ locals {
       auto_init       = true
       required_checks = ["required"]
       renovate        = { automerge_variable = "CI_AUTOMERGE" }
+      # Every green merge to main is released as vX.Y.Z by the Renovate App,
+      # from the main-only renovate environment, and callers pin those.
+      tag_creator_app_ids = [local.renovate_app_id]
+      immutable_releases  = true
     }
     renovate_config = {
       name            = "renovate-config"
@@ -71,6 +79,13 @@ locals {
       renovate        = { automerge_variable = "FRANKENPHP_AUTOMERGE" }
     }
   }
+
+  # Repos whose published releases can never change. Provider 6.13.0 has
+  # no attribute for it: scripts/immutable-releases.sh sets it after each
+  # apply, and checks.tf reads it back.
+  immutable_release_repositories = sort([
+    for r in local.repositories : r.name if try(r.immutable_releases, false)
+  ])
 }
 
 module "repository" {
@@ -78,7 +93,8 @@ module "repository" {
   for_each = local.repositories
 
   name = each.value.name
-  # Conversion to the module's object type drops the extra name attribute.
+  # Conversion to the module's object type drops the attributes it does
+  # not declare: name, and immutable_releases, which the root handles.
   settings                 = each.value
   maintainers_team_id      = module.organization.maintainers_team_id
   renovate_app_client_id   = var.renovate_app_client_id

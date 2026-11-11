@@ -59,6 +59,19 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   a job that runs tofu: they override the provider's owner and token.
 - **Never publish `tofu show -json` output.** It holds sensitive values
   in full, and this repository is public. Use `tofu show -no-color`.
+- **Tags take two rulesets.** A bypass covers every rule in its ruleset,
+  so `tag-creation` (org admins, plus the Apps in a repo's
+  `tag_creator_app_ids`) is separate from `tag-update-deletion` (org
+  admins only). Never add a bypass actor to `tag-update-deletion`. An App
+  is named by its App ID, never an installation ID. `tag-update-deletion`
+  waits for `tag-creation` in the graph (`test/ordering.sh` holds the
+  edge), so a rule moving into `tag-creation` stays enforced mid-apply.
+  That holds in that direction only: moving a rule back out of
+  `tag-creation` updates it first, so that apply needs the edge reversed.
+- **Immutable releases are set by script.** Provider 6.13.0 has no
+  attribute for them. A repo with `immutable_releases = true` in
+  `local.repositories` gets them from `scripts/immutable-releases.sh`
+  after each apply, and `checks.tf` reads them back for the drift run.
 - **Destroy guards stay.** Repos are forgotten, not deleted, when removed
   from config; the org-wide resources refuse destruction, because
   destroying them resets them. `test/lifecycle.sh` holds the line.
