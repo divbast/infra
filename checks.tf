@@ -2,15 +2,23 @@
 # SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
 
 # Settings the provider cannot manage, set by scripts/assert-unmanaged.sh
-# after each apply and read back here. A failed check is a warning in a
-# plan; the drift workflow turns any failed check into a red run. A repo
-# created in the same change reads as 404 until its apply, so a PR's plan
-# can warn about it without anything being wrong.
+# and scripts/immutable-releases.sh after each apply and read back here. A
+# failed check is a warning in a plan; the drift workflow turns any failed
+# check into a red run. A repo created, or newly flagged, in the same
+# change reads as 404 or off until its apply, so a PR's plan can warn
+# about it without anything being wrong.
 
 data "github_rest_api" "private_vulnerability_reporting" {
   for_each = local.repositories
 
   endpoint = "repos/divbast/${each.value.name}/private-vulnerability-reporting"
+}
+
+# Only the repos that ask for immutable releases; the rest are not read.
+data "github_rest_api" "immutable_releases" {
+  for_each = toset(local.immutable_release_repositories)
+
+  endpoint = "repos/divbast/${each.value}/immutable-releases"
 }
 
 data "github_rest_api" "fork_pr_approval" {
@@ -28,6 +36,16 @@ check "private_vulnerability_reporting" {
       try(jsondecode(r.body).enabled, false)
     ])
     error_message = "Private vulnerability reporting is off on a repo; scripts/assert-unmanaged.sh turns it on."
+  }
+}
+
+check "immutable_releases" {
+  assert {
+    condition = alltrue([
+      for r in data.github_rest_api.immutable_releases :
+      try(jsondecode(r.body).enabled, false)
+    ])
+    error_message = "Immutable releases are off on a repo that asks for them; scripts/immutable-releases.sh turns them on."
   }
 }
 

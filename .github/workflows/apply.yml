@@ -92,6 +92,8 @@ jobs:
         run: |
           mapfile -t repos < <(tofu output -json repository_names | jq -r '.[]')
           scripts/assert-unmanaged.sh divbast "${repos[@]}"
+          mapfile -t immutable < <(tofu output -json immutable_release_repositories | jq -r '.[]')
+          scripts/immutable-releases.sh divbast "${immutable[@]}"
 
       - name: Summarise
         if: always()

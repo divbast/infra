@@ -66,6 +66,10 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   is named by its App ID, never an installation ID. `tag-update-deletion`
   waits for `tag-creation` in the graph, so moving a rule between them
   never leaves it unenforced mid-apply; `test/ordering.sh` holds that.
+- **Immutable releases are set by script.** Provider 6.13.0 has no
+  attribute for them. A repo with `immutable_releases = true` in
+  `local.repositories` gets them from `scripts/immutable-releases.sh`
+  after each apply, and `checks.tf` reads them back for the drift run.
 - **Destroy guards stay.** Repos are forgotten, not deleted, when removed
   from config; the org-wide resources refuse destruction, because
   destroying them resets them. `test/lifecycle.sh` holds the line.

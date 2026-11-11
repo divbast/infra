@@ -17,11 +17,12 @@ turns the next daily drift run red.
   branch; tags guarded by two rulesets (below); Renovate's environment and
   kill switch.
 - `main.tf`: every repository, as one entry in `local.repositories`.
-- `checks.tf` and `scripts/assert-unmanaged.sh`: the settings the provider
-  cannot manage (private vulnerability reporting, the fork-PR approval
-  policy, no default code security configuration).
+- `checks.tf`, `scripts/assert-unmanaged.sh` and
+  `scripts/immutable-releases.sh`: the settings the provider cannot manage
+  (private vulnerability reporting, the fork-PR approval policy, no
+  default code security configuration, immutable releases).
 
-## Tags
+## Tags and releases
 
 A ruleset's bypass list covers every rule in it, so each repository has
 two tag rulesets, both over every tag:
@@ -36,13 +37,21 @@ two tag rulesets, both over every tag:
 release workflow tags and releases every green merge to main as that
 App, from ci's main-only `renovate` environment.
 
+`immutable_releases = true` turns on GitHub's immutable releases for a
+repo: once a release is published, its tag and assets cannot change.
+Provider 6.13.0 has no attribute for it, so `apply` sets it through the
+REST API after each apply, and `checks.tf` reads it back, which turns
+the drift run red if it is ever switched off. `ci` sets it. Setting it
+to false, or leaving it out, does not turn it off on GitHub; a person
+does that in the repo's settings.
+
 ## How it runs
 
 | Workflow | When | What |
 |---|---|---|
 | `ci` | every PR and push | every gate (`just ci`), no secrets |
 | `plan` | PRs from this repository | the plan against the live org, on the run's summary page |
-| `apply` | push to main, or by hand | a fresh plan, applied, then `assert-unmanaged.sh` |
+| `apply` | push to main, or by hand | a fresh plan, applied, then `assert-unmanaged.sh` and `immutable-releases.sh` |
 | `drift` | daily, or by hand | red if the org differs from main or a check fails |
 | `renovate` | daily, on merges, on CI finishing | updates; merges its own PRs only when their plan is empty |
 
@@ -55,9 +64,9 @@ that runs tofu queues on one concurrency group.
 Add one entry to `local.repositories` in `main.tf` and open a PR. The
 `divbast-infra` and `divbast-renovate` Apps are installed on all
 repositories, so a new one needs nothing by hand. A repo that runs
-Renovate names its kill switch, e.g. `BAIKAL_AUTOMERGE`. A repo whose
-releases an App tags names that App in `tag_creator_app_ids`, as `ci`
-does.
+Renovate names its kill switch, e.g. `BAIKAL_AUTOMERGE`. A repo that
+publishes releases may set `tag_creator_app_ids` and
+`immutable_releases`, as `ci` does.
 
 ## Stopping Renovate's merges
 

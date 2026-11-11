@@ -61,6 +61,21 @@ while IFS= read -r line; do
         || fail "tofu show -json not piped straight into jq -e printing only addresses: ${line}"
 done < <(grep -h 'tofu show -json' "${dir}"/*.yml || true)
 
+# What the provider cannot manage is set after each apply, by these
+# scripts; a repo created by that apply would otherwise not exist yet.
+applied=$(grep -n 'run: tofu apply' "${dir}/apply.yml" | head -n1 | cut -d: -f1 || true)
+for script in assert-unmanaged immutable-releases; do
+    line=$(grep -n "scripts/${script}.sh" "${dir}/apply.yml" | head -n1 | cut -d: -f1 || true)
+    if [[ -z ${applied} || -z ${line} || ${line} -lt ${applied} ]]; then
+        fail "${dir}/apply.yml: scripts/${script}.sh does not run after tofu apply"
+    fi
+done
+
+# checks.tf reads those settings back, and a failed check is only a
+# warning in a plan: the drift run must turn one red.
+grep -qF 'select(.status != "pass")' "${dir}/drift.yml" \
+    || fail "${dir}/drift.yml: a failed check does not fail the drift run"
+
 # These override the provider's owner or token (#3576, and the documented
 # GITHUB_OWNER bug).
 if grep -nE 'GITHUB_OWNER|GITHUB_ORGANIZATION|GITHUB_APP_' "${dir}"/*.yml; then
