@@ -105,9 +105,13 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   with `auto_init` and `is_template = true`, not from a template, and its
   kill switch is `OCI_IMAGE_TEMPLATE_AUTOMERGE`.
 - **Destroy guards stay.** Removing an entry from `local.repositories`
-  destroys that repo's rulesets, environments, secrets, variables, team
-  access and alerts; only the repo itself is forgotten rather than
-  deleted. The org-wide resources refuse destruction, because destroying
-  them resets them. `internal/repotest` holds the line.
+  destroys every resource `modules/repository` made for that repo but
+  the repo itself, which is forgotten rather than deleted: its three
+  rulesets, its environments and their deployment branch policies,
+  Renovate's environment secret and variable and its kill-switch
+  variable, the maintainers team's access, Dependabot alerts and the
+  Dependabot security updates setting. The org-wide resources refuse
+  destruction, because destroying them resets them. `internal/repotest`
+  holds the line.
 - REUSE headers on every file, BSD-2-Clause. Files without comment syntax
   or rewritten by tools get a `.license` sidecar.
