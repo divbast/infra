@@ -96,7 +96,8 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
 - **A new key for `local.repositories` goes in `modules/entries` too.**
   Conversion to the repository module's object type drops a key it does
   not declare without a word, so `modules/entries` fails the plan on any
-  key missing from its `allowed_keys`.
+  entry's own key missing from its `allowed_keys`. Keys inside an
+  entry's values, such as an `environments` entry, are not checked.
 - **`template` belongs only on an entry that creates a new repo.** The
   provider reads it on create alone, so on an existing repo it plans a
   diff forever. A new app repo is an entry with

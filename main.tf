@@ -95,7 +95,7 @@ locals {
 }
 
 # Fails the plan on a key in local.repositories that nothing reads, and on
-# ci's releases no longer being immutable.
+# ci's entry no longer setting immutable_releases = true.
 module "entries" {
   source       = "./modules/entries"
   repositories = local.repositories
