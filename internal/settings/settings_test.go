@@ -90,8 +90,11 @@ const (
 )
 
 // TestApply sets everything against a fake GitHub and compares every call
-// it made, in order, with what each case asks for: the cases the shell
-// scripts it replaced were tested with, one to one.
+// it made, in order, with what each case asks for. Three cases keep the
+// names of the shell scripts' cases they port: sets_both_and_passes from
+// assert-unmanaged.sh, enables_each_repo and none_asked_for from
+// immutable-releases.sh. Their four failure cases are TestRun's, in
+// cmd/infra-settings, since each was about the exit status.
 func TestApply(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -102,14 +105,25 @@ func TestApply(t *testing.T) {
 		summary  string
 	}{
 		{
-			name:     "sets both and passes",
+			// Private vulnerability reporting and the fork PR policy, the
+			// two settings assert-unmanaged.sh made, beside one immutable repo
+			name:     "sets_both_and_passes",
+			repos:    settings.Repos{All: []string{"one", "two"}, Immutable: []string{"two"}},
+			defaults: "[]",
+			calls:    []string{pvrOne, pvrTwo, forkPR + forkBody, defaults, immutable},
+			summary:  "private vulnerability reporting on for 2 repos; fork PR approval required; no default code security configuration; immutable releases on for 1 repos",
+		},
+		{
+			// No repo asks for immutable releases: none is set, and nothing
+			// else changes
+			name:     "none_asked_for",
 			repos:    settings.Repos{All: []string{"one", "two"}},
 			defaults: "[]",
 			calls:    []string{pvrOne, pvrTwo, forkPR + forkBody, defaults},
 			summary:  "private vulnerability reporting on for 2 repos; fork PR approval required; no default code security configuration; immutable releases on for 0 repos",
 		},
 		{
-			name:     "enables each repo",
+			name:     "enables_each_repo",
 			repos:    settings.Repos{All: []string{"one", "two"}, Immutable: []string{"one", "two"}},
 			defaults: "[]",
 			calls: []string{
@@ -119,7 +133,7 @@ func TestApply(t *testing.T) {
 			summary: "private vulnerability reporting on for 2 repos; fork PR approval required; no default code security configuration; immutable releases on for 2 repos",
 		},
 		{
-			name:     "a name to escape",
+			name:     "a_name_to_escape",
 			repos:    settings.Repos{All: []string{".github", "a b"}, Immutable: []string{".github"}},
 			defaults: "[]",
 			calls: []string{

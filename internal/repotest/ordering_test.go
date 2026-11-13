@@ -32,10 +32,11 @@ var module = filepath.Join("modules", "repository")
 
 // graph returns tofu graph for the module in dir. It fails the test, and
 // never skips it, when tofu cannot draw one, as it cannot until just init
-// has installed the module's providers.
+// has installed the module's providers; -no-color keeps colour codes out
+// of what tofu says then.
 func graph(t *testing.T, dir string) string {
 	t.Helper()
-	cmd := exec.CommandContext(t.Context(), "tofu", "graph")
+	cmd := exec.CommandContext(t.Context(), "tofu", "graph", "-no-color")
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {

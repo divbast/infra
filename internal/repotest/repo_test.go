@@ -95,9 +95,13 @@ func replaceRE(s, expr, to string) (string, error) {
 	return s[:loc[0]] + to + s[loc[1]:], nil
 }
 
-// wantProblem fails the test unless one of problems contains want.
+// wantProblem fails the test unless one of problems contains want. It logs
+// each problem, so that go test -v shows every refusal a mutant drew.
 func wantProblem(t *testing.T, problems []string, want string) {
 	t.Helper()
+	for _, p := range problems {
+		t.Log("refused: " + p)
+	}
 	if !slices.ContainsFunc(problems, func(p string) bool { return strings.Contains(p, want) }) {
 		t.Errorf("no problem says %q; got %q", want, problems)
 	}

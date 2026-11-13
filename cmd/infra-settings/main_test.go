@@ -47,7 +47,12 @@ func fakeGitHub(t *testing.T, defaults string, status int) (api string, calls *a
 }
 
 // TestRun runs the command as apply.yml does, and checks its exit code,
-// what it prints, and that it never prints the token.
+// what it prints, and that it never prints the token. Four cases keep the
+// names of the shell scripts' failure cases they port, which were about
+// the exit status: fails_on_a_default_configuration and fails_without_repos
+// from assert-unmanaged.sh, fails_when_gh_fails and fails_without_an_org
+// from immutable-releases.sh. The command calls GitHub's API, not gh, so
+// fails_when_gh_fails has the API refuse a call.
 func TestRun(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -69,20 +74,20 @@ func TestRun(t *testing.T) {
 				"no default code security configuration; immutable releases on for 1 repos\n",
 		},
 		{
-			name: "a default code security configuration", token: token, outputs: outputs, code: 1,
+			name: "fails_on_a_default_configuration", token: token, outputs: outputs, code: 1,
 			defaults: `[{"default_for_new_repos":"all","configuration":{"name":"GitHub recommended"}}]`,
 			stderr:   "GitHub recommended (default for all repos)",
 		},
-		{name: "GitHub refusing", token: token, outputs: outputs, status: http.StatusForbidden, code: 1, stderr: "403 Forbidden"},
+		{name: "fails_when_gh_fails", token: token, outputs: outputs, status: http.StatusForbidden, code: 1, stderr: "403 Forbidden"},
 		{name: "GitHub failing", token: token, outputs: outputs, status: http.StatusInternalServerError, code: 1, stderr: "500 Internal Server Error"},
 		{name: "no token", outputs: outputs, code: 2, stderr: "GH_TOKEN", noCalls: true},
 		{
-			name: "no repos", token: token, code: 2, stderr: "no repositories", noCalls: true,
+			name: "fails_without_repos", token: token, code: 2, stderr: "no repositories", noCalls: true,
 			outputs: `{"repository_names": {"value": []}, "immutable_release_repositories": {"value": []}}`,
 		},
 		{name: "tofu output unreadable", token: token, outputs: "not JSON", code: 2, stderr: "tofu output", noCalls: true},
 		{name: "tofu failing", token: token, tofu: errors.New("exit status 1"), code: 2, stderr: "tofu output -json: exit status 1", noCalls: true},
-		{name: "an empty org", args: []string{"-org", ""}, token: token, outputs: outputs, code: 2, stderr: "usage", noCalls: true},
+		{name: "fails_without_an_org", args: []string{"-org", ""}, token: token, outputs: outputs, code: 2, stderr: "usage", noCalls: true},
 		{name: "an argument", args: []string{"divbast"}, token: token, outputs: outputs, code: 2, stderr: "usage", noCalls: true},
 		{name: "an unknown flag", args: []string{"-repo", "one"}, token: token, outputs: outputs, code: 2, stderr: "usage", noCalls: true},
 		{name: "help", args: []string{"-h"}, token: token, outputs: outputs, code: 0, stderr: "usage", noCalls: true},
