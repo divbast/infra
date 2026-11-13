@@ -19,7 +19,7 @@ concurrency:
 jobs:
   lint:
     name: lint
-    uses: divbast/ci/.github/workflows/lint.yml@d8a67ac48c22f7f65535260db8857e2a626bfaab # v1.15.0
+    uses: divbast/ci/.github/workflows/lint.yml@58ed2348852e95ccafd91c06c61f963b19769c73 # v1.25.0
     permissions:
       contents: read # checkout
 
