@@ -6,8 +6,8 @@
 // org's approval policy for fork pull requests, immutable releases on the
 // repositories that ask for them, and the absence of any default code
 // security configuration, which would fight the per-repository security
-// settings OpenTofu makes. checks.tf reads each back, so the drift run
-// fails when one no longer holds.
+// settings OpenTofu makes. modules/checks reads each back, so the drift
+// run fails when one no longer holds.
 package settings
 
 import (

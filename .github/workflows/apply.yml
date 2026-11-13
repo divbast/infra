@@ -34,8 +34,12 @@ jobs:
       # installs beyond it.
       MISE_AUTO_INSTALL: "false"
     steps:
+      # Main as it is now, not the commit that started this run: two merges
+      # close together queue on the tofu group, and if the earlier one's run
+      # went second, it would put the org back to that merge's config.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: main
           persist-credentials: false
 
       # Only what this job runs: every other tool in mise.toml would be one
@@ -44,7 +48,7 @@ jobs:
         with:
           install_args: aqua:opentofu/opentofu core:go
 
-      # From this commit, before the App token exists, and with no
+      # From that checkout, before the App token exists, and with no
       # credentials in its environment.
       - name: Build infra-settings
         run: go build -o .bin/ ./cmd/infra-settings

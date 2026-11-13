@@ -53,8 +53,14 @@ resource "github_repository" "this" {
   }
 
   lifecycle {
-    # Removing a repo from the config forgets it rather than deleting it;
-    # archive_on_destroy is the backstop if it is ever destroyed anyway.
+    # Removing a repo from the config forgets the repo itself rather than
+    # deleting it, but destroys every other resource this module made for
+    # it: its three rulesets, its environments and their deployment branch
+    # policies, Renovate's environment secret and variable and its
+    # kill-switch variable, the maintainers team's access, Dependabot
+    # alerts and the Dependabot security updates setting.
+    # archive_on_destroy is the backstop if the repo is ever destroyed
+    # anyway.
     destroy = false
   }
 }

@@ -16,7 +16,7 @@ import (
 // Check is one check's result in a plan.
 type Check struct {
 	// Address is the check's address as tofu displays it, such as
-	// check.fork_pr_approval.
+	// module.checks.check.fork_pr_approval.
 	Address string
 	// Status is pass, fail, error or unknown.
 	Status string

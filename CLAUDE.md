@@ -88,7 +88,16 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   approval policy, no default code security configuration, and immutable
   releases on a repo with `immutable_releases = true` in
   `local.repositories`. Provider 6.13.0 has no attribute for any of them.
-  `checks.tf` reads each back for the drift run.
+  `modules/checks` reads each back for the drift run: the two repo
+  settings on every repo, the two org settings once. It also reads each
+  repo's topics, commit signoff, forking and default branch: the provider
+  marks those optional and computed, so a plan never shows a hand edit to
+  one the config leaves unset or empty.
+- **A new key for `local.repositories` goes in `modules/entries` too.**
+  Conversion to the repository module's object type drops a key it does
+  not declare without a word, so `modules/entries` fails the plan on any
+  entry's own key missing from its `allowed_keys`. Keys inside an
+  entry's values, such as an `environments` entry, are not checked.
 - **`template` belongs only on an entry that creates a new repo.** The
   provider reads it on create alone, so on an existing repo it plans a
   diff forever. A new app repo is an entry with
@@ -96,8 +105,14 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   never add it to an existing entry. `oci-image-template` itself is made
   with `auto_init` and `is_template = true`, not from a template, and its
   kill switch is `OCI_IMAGE_TEMPLATE_AUTOMERGE`.
-- **Destroy guards stay.** Repos are forgotten, not deleted, when removed
-  from config; the org-wide resources refuse destruction, because
-  destroying them resets them. `internal/repotest` holds the line.
+- **Destroy guards stay.** Removing an entry from `local.repositories`
+  destroys every resource `modules/repository` made for that repo but
+  the repo itself, which is forgotten rather than deleted: its three
+  rulesets, its environments and their deployment branch policies,
+  Renovate's environment secret and variable and its kill-switch
+  variable, the maintainers team's access, Dependabot alerts and the
+  Dependabot security updates setting. The org-wide resources refuse
+  destruction, because destroying them resets them. `internal/repotest`
+  holds the line.
 - REUSE headers on every file, BSD-2-Clause. Files without comment syntax
   or rewritten by tools get a `.license` sidecar.

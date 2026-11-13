@@ -7,8 +7,9 @@ SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
 
 The divbast organisation, as OpenTofu: its settings, its Actions policy,
 the maintainers team, and every repository with its rulesets,
-environments and Renovate wiring. A setting changed by hand in the UI
-turns the next daily drift run red.
+environments and Renovate wiring. A hand edit in the UI to a setting the
+config states, or to one `modules/checks` reads back, turns the next
+daily drift run red.
 
 - `modules/organization`: org settings, Actions policy, workflow token
   defaults, the maintainers team.
@@ -17,11 +18,18 @@ turns the next daily drift run red.
   branch; tags guarded by two rulesets (below); Renovate's environment and
   kill switch.
 - `main.tf`: every repository, as one entry in `local.repositories`.
-- `checks.tf` and `cmd/infra-settings`: the settings the provider cannot
-  manage (private vulnerability reporting, the fork-PR approval policy,
-  no default code security configuration, immutable releases).
+- `modules/entries`: those entries as written. It fails the plan on an
+  entry's own key that nothing reads, which conversion to the repository
+  module's type would otherwise drop without a word, and on `ci`'s entry
+  no longer setting `immutable_releases = true`.
+- `modules/checks` and `cmd/infra-settings`: the settings the provider
+  cannot manage (private vulnerability reporting, the fork-PR approval
+  policy, no default code security configuration, immutable releases).
   `infra-settings` sets them through the REST API after each apply, and
-  `checks.tf` reads them back.
+  `modules/checks` reads them back. It also reads each repo's topics,
+  commit signoff, forking and default branch, which the provider marks
+  optional and computed: a plan never shows a hand edit to one the config
+  leaves unset or empty.
 - `cmd/infra-checks`: the drift run's filter over the JSON plan, which
   fails on any check that did not pass and prints only addresses.
 - `internal/repotest`: Go tests of this repository's own files: the
@@ -41,15 +49,20 @@ two tag rulesets, both over every tag:
 
 `ci` names `divbast-renovate` (App ID 5691200) as its tag creator: ci's
 release workflow tags and releases every green merge to main as that
-App, from ci's main-only `renovate` environment.
+App, from ci's main-only `renovate` environment. A squash merge's
+message starts as the messages of the commits it squashes
+(`squash_merge_commit_message = "COMMIT_MESSAGES"`), so a
+`Breaking-change:` trailer on any of them reaches main, where that
+release workflow reads it.
 
 `immutable_releases = true` turns on GitHub's immutable releases for a
 repo: once a release is published, its tag and assets cannot change.
 Provider 6.13.0 has no attribute for it, so `apply` sets it through the
-REST API after each apply, and `checks.tf` reads it back, which turns
-the drift run red if it is ever switched off. `ci` sets it. Setting it
-to false, or leaving it out, does not turn it off on GitHub; a person
-does that in the repo's settings.
+REST API after each apply, and `modules/checks` reads it back on every
+repo, which turns the drift run red if it is ever switched off, or
+switched on for a repo that does not set it. `ci` sets it. Setting it to
+false, or leaving it out, does not turn it off on GitHub; a person does
+that in the repo's settings, and the drift run stays red until they do.
 
 ## How it runs
 
@@ -58,7 +71,7 @@ does that in the repo's settings.
 | `ci` | every PR and push | every gate (`just lint`, through divbast/ci's `lint.yml`), no secrets |
 | `plan` | PRs from this repository | the plan against the live org, on the run's summary page |
 | `apply` | push to main, or by hand | a fresh plan, applied, then `infra-settings` |
-| `drift` | daily, or by hand | red if the org differs from main or a check fails |
+| `drift` | daily, or by hand | red if a plan of main is not empty or a check fails |
 | `renovate` | daily, on merges, on CI or the plan finishing | updates, through divbast/ci's `renovate.yml`; merges its own PRs only when their plan is empty |
 | `stall` | daily, or by hand | red when updates stop flowing: a Renovate PR stuck or left open, or Renovate silent, through divbast/ci's `stall.yml` |
 
@@ -84,9 +97,12 @@ that call GitHub need a fine-grained `GITHUB_TOKEN`; see
 
 ## Adding a repository
 
-Add one entry to `local.repositories` in `main.tf` and open a PR. The
-`divbast-infra` and `divbast-renovate` Apps are installed on all
-repositories, so a new one needs nothing by hand. A repo that runs
+Add one entry to `local.repositories` in `main.tf` and open a PR. A key
+of the entry's own that nothing reads, a misspelling among them, fails
+the PR's plan. A key inside one of its values, such as an `environments`
+entry, is not checked, and conversion drops a misspelt one there without
+a word. The `divbast-infra` and `divbast-renovate` Apps are installed on
+all repositories, so a new one needs nothing by hand. A repo that runs
 Renovate names its kill switch, e.g. `BAIKAL_AUTOMERGE`. A repo that
 publishes releases may set `tag_creator_app_ids` and
 `immutable_releases`, as `ci` does.

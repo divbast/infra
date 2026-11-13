@@ -121,11 +121,3 @@ resource "github_repository_ruleset" "tag_update_deletion" {
   # tag_creation first: that apply needs this edge reversed.
   depends_on = [github_repository_ruleset.tag_creation]
 }
-
-# The one tags ruleset before the split. It keeps its GitHub ID and its
-# bypass list, and loses only its creation rule. Delete this block after
-# the apply that runs it.
-moved {
-  from = github_repository_ruleset.tags
-  to   = github_repository_ruleset.tag_update_deletion
-}

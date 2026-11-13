@@ -20,7 +20,11 @@ jobs:
     name: plan
     runs-on: ubuntu-26.04
     timeout-minutes: 30
-    environment: plan
+    # For the environment's secrets, not a deployment: every push to a PR
+    # would otherwise add one to the deployment history.
+    environment:
+      name: plan
+      deployment: false
     # B2 has no state locking, so every tofu run in this repo queues on one
     # group, and a waiting run never cancels another.
     concurrency:
