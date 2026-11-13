@@ -124,6 +124,17 @@ var workflowChecks = []workflowCheck{
 			},
 		},
 	},
+	{
+		name:  "the jobs holding the admin token never install beyond their mise step",
+		check: autoInstallOff,
+		mutants: []workflowMutant{
+			{name: "apply.yml with auto-install on", file: "apply.yml", from: "      MISE_AUTO_INSTALL: \"false\"\n", to: ""},
+			{
+				name: "plan.yml turning it back on in a step", file: "plan.yml",
+				from: "        run: tofu init -input=false -lockfile=readonly", to: "          MISE_AUTO_INSTALL: \"true\"\n        run: tofu init -input=false -lockfile=readonly",
+			},
+		},
+	},
 	// Secrets reach only the steps that use them, never every step.
 	{
 		name:  "no credentials in job-level env",
@@ -371,6 +382,31 @@ func installOnlyWhatTheyRun(workflows map[string]string) []string {
 		}
 		if !found {
 			problems = append(problems, f+": no mise-action step")
+		}
+	}
+	return problems
+}
+
+// autoInstallOff wants every tofu job with a mise step to set
+// MISE_AUTO_INSTALL to false in its env, and nothing in it to set it to
+// anything else.
+func autoInstallOff(workflows map[string]string) []string {
+	var problems []string
+	for _, f := range present(workflows, tofuWorkflows) {
+		jobs := jobsOf(linesOf(workflows[f]))
+		for _, name := range slices.Sorted(maps.Keys(jobs)) {
+			job := jobs[name]
+			if !slices.ContainsFunc(job, usesMise) {
+				continue
+			}
+			if block(job, 4, "env")["MISE_AUTO_INSTALL"] != "false" {
+				problems = append(problems, f+": job "+name+` sets no MISE_AUTO_INSTALL: "false" in its env`)
+			}
+			for _, l := range job {
+				if v, ok := strings.CutPrefix(strings.TrimSpace(l.text), "MISE_AUTO_INSTALL:"); ok && unquote(v) != "false" {
+					problems = append(problems, f+":"+strconv.Itoa(l.n)+": sets MISE_AUTO_INSTALL to "+strings.TrimSpace(v))
+				}
+			}
 		}
 	}
 	return problems
