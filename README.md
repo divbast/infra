@@ -48,7 +48,11 @@ two tag rulesets, both over every tag:
 
 `ci` names `divbast-renovate` (App ID 5691200) as its tag creator: ci's
 release workflow tags and releases every green merge to main as that
-App, from ci's main-only `renovate` environment.
+App, from ci's main-only `renovate` environment. A squash merge's
+message starts as the messages of the commits it squashes
+(`squash_merge_commit_message = "COMMIT_MESSAGES"`), so a
+`Breaking-change:` trailer on any of them reaches main, where that
+release workflow reads it.
 
 `immutable_releases = true` turns on GitHub's immutable releases for a
 repo: once a release is published, its tag and assets cannot change.
