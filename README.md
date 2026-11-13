@@ -68,6 +68,15 @@ Renovate names its kill switch, e.g. `BAIKAL_AUTOMERGE`. A repo that
 publishes releases may set `tag_creator_app_ids` and
 `immutable_releases`, as `ci` does.
 
+From here on, a new app repo is an entry with
+`template = { owner = "divbast", repository = "oci-image-template" }`.
+The provider reads `template` only when it creates the repo, so never add
+it to an existing entry: it would show a diff in every plan. The template
+repo itself is an ordinary `auto_init` entry with `is_template = true`,
+not made from a template. Its Renovate kill switch is
+`OCI_IMAGE_TEMPLATE_AUTOMERGE`; a repo made from it needs its own
+variable name, in both its `renovate.yml` and its entry here.
+
 ## Stopping Renovate's merges
 
 ```sh
