@@ -55,7 +55,7 @@ test:
     done
 
 # Verify every action is a SHA. The workflow recipes skip until .github/workflows
-# exists; test/workflows.sh then fails if any expected workflow is missing
+# exists; internal/repotest then fails if any expected workflow is missing
 actions-check:
     if [[ -d .github/workflows ]]; then GITHUB_TOKEN="${GITHUB_TOKEN:-$(gh auth token)}" pinact run --verify --check; else echo "no workflows yet"; fi
 
@@ -87,7 +87,12 @@ scripts-test:
         bash "${t}"
     done
 
+# The Go tests, under the race detector. internal/repotest reads the
+# module's graph, so it needs `just init` first
+go-test:
+    go test -race -count=1 ./...
+
 lint: fmt-check init validate tflint actionlint workflow-audit actions-check shellcheck
     reuse lint
 
-ci: lint test scripts-test
+ci: lint test scripts-test go-test

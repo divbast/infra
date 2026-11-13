@@ -64,7 +64,7 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   `tag_creator_app_ids`) is separate from `tag-update-deletion` (org
   admins only). Never add a bypass actor to `tag-update-deletion`. An App
   is named by its App ID, never an installation ID. `tag-update-deletion`
-  waits for `tag-creation` in the graph (`test/ordering.sh` holds the
+  waits for `tag-creation` in the graph (`internal/repotest` holds the
   edge), so a rule moving into `tag-creation` stays enforced mid-apply.
   That holds in that direction only: moving a rule back out of
   `tag-creation` updates it first, so that apply needs the edge reversed.
@@ -81,6 +81,6 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   kill switch is `OCI_IMAGE_TEMPLATE_AUTOMERGE`.
 - **Destroy guards stay.** Repos are forgotten, not deleted, when removed
   from config; the org-wide resources refuse destruction, because
-  destroying them resets them. `test/lifecycle.sh` holds the line.
+  destroying them resets them. `internal/repotest` holds the line.
 - REUSE headers on every file, BSD-2-Clause. Files without comment syntax
   or rewritten by tools get a `.license` sidecar.
