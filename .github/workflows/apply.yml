@@ -38,7 +38,12 @@ jobs:
       # more download executing next to the admin token.
       - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
         with:
-          install_args: aqua:opentofu/opentofu aqua:jqlang/jq
+          install_args: aqua:opentofu/opentofu core:go
+
+      # From this commit, before the App token exists, and with no
+      # credentials in its environment.
+      - name: Build infra-settings
+        run: go build -o .bin/ ./cmd/infra-settings
 
       - id: token
         # Org-wide with the App's full permissions, which is what managing the
@@ -82,23 +87,16 @@ jobs:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         run: tofu apply -input=false tfplan
 
-      # What the provider cannot manage, set through the REST API.
+      # What the provider cannot manage, set through the REST API. It reads
+      # the repositories from tofu output -json itself, which needs the
+      # state's credentials, and fails on an output it cannot read.
       - name: Set the settings outside the provider
         env:
           AWS_ACCESS_KEY_ID: ${{ vars.B2_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
           TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}
           GH_TOKEN: ${{ steps.token.outputs.token }}
-        # Each output is assigned before it is read, so a failing tofu stops
-        # the step: inside a process substitution its failure would go
-        # unnoticed and the script would run with an empty list.
-        run: |
-          names=$(tofu output -json repository_names)
-          mapfile -t repos < <(jq -r '.[]' <<<"${names}")
-          scripts/assert-unmanaged.sh divbast "${repos[@]}"
-          immutable=$(tofu output -json immutable_release_repositories)
-          mapfile -t immutable_repos < <(jq -r '.[]' <<<"${immutable}")
-          scripts/immutable-releases.sh divbast "${immutable_repos[@]}"
+        run: .bin/infra-settings
 
       - name: Summarise
         if: always()

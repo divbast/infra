@@ -20,8 +20,8 @@ var tofuWorkflows = []string{"plan.yml", "apply.yml", "drift.yml"}
 // the job runs, since every other tool in mise.toml would be one more
 // download executing next to the admin token.
 var installArgs = map[string]string{
-	"plan.yml":  "aqua:opentofu/opentofu aqua:jqlang/jq",
-	"apply.yml": "aqua:opentofu/opentofu aqua:jqlang/jq",
+	"plan.yml":  "aqua:opentofu/opentofu",
+	"apply.yml": "aqua:opentofu/opentofu core:go",
 	"drift.yml": "aqua:opentofu/opentofu aqua:jqlang/jq",
 }
 
@@ -157,7 +157,11 @@ var workflowChecks = []workflowCheck{
 			{name: "apply.yml applying nothing", file: "apply.yml", from: "run: tofu apply -input=false tfplan", to: "run: tofu show -no-color tfplan"},
 			{
 				name: "apply.yml setting them before the apply", file: "apply.yml",
-				from: "      - name: Apply\n", to: "      - run: scripts/immutable-releases.sh divbast\n      - name: Apply\n",
+				from: "      - name: Apply\n", to: "      - run: .bin/infra-settings\n      - name: Apply\n",
+			},
+			{
+				name: "apply.yml running a binary it did not build", file: "apply.yml",
+				from: "run: go build -o .bin/ ./cmd/infra-settings", to: "run: 'true'",
 			},
 		},
 	},
@@ -397,14 +401,15 @@ func planJSONFiltered(workflows map[string]string) []string {
 
 func settingsAfterApply(workflows map[string]string) []string {
 	lines := linesOf(workflows["apply.yml"])
-	applied := firstLine(lines, "run: tofu apply")
-	var problems []string
-	for _, run := range []string{"scripts/assert-unmanaged.sh", "scripts/immutable-releases.sh"} {
-		if at := firstLine(lines, run); applied == 0 || at == 0 || at < applied {
-			problems = append(problems, "apply.yml: "+run+" does not run after tofu apply")
-		}
+	built := firstLine(lines, "go build -o .bin/ ./cmd/infra-settings")
+	applied, set := firstLine(lines, "run: tofu apply"), firstLine(lines, ".bin/infra-settings")
+	switch {
+	case applied == 0 || set == 0 || set < applied:
+		return []string{"apply.yml: .bin/infra-settings does not run after tofu apply"}
+	case built == 0 || built > set:
+		return []string{"apply.yml: .bin/infra-settings is not built from ./cmd/infra-settings before it runs"}
 	}
-	return problems
+	return nil
 }
 
 // substitution matches tofu run inside a process substitution.

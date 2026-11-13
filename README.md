@@ -17,10 +17,11 @@ turns the next daily drift run red.
   branch; tags guarded by two rulesets (below); Renovate's environment and
   kill switch.
 - `main.tf`: every repository, as one entry in `local.repositories`.
-- `checks.tf`, `scripts/assert-unmanaged.sh` and
-  `scripts/immutable-releases.sh`: the settings the provider cannot manage
-  (private vulnerability reporting, the fork-PR approval policy, no
-  default code security configuration, immutable releases).
+- `checks.tf` and `cmd/infra-settings`: the settings the provider cannot
+  manage (private vulnerability reporting, the fork-PR approval policy,
+  no default code security configuration, immutable releases).
+  `infra-settings` sets them through the REST API after each apply, and
+  `checks.tf` reads them back.
 
 ## Tags and releases
 
@@ -51,7 +52,7 @@ does that in the repo's settings.
 |---|---|---|
 | `ci` | every PR and push | every gate (`just ci`), no secrets |
 | `plan` | PRs from this repository | the plan against the live org, on the run's summary page |
-| `apply` | push to main, or by hand | a fresh plan, applied, then `assert-unmanaged.sh` and `immutable-releases.sh` |
+| `apply` | push to main, or by hand | a fresh plan, applied, then `infra-settings` |
 | `drift` | daily, or by hand | red if the org differs from main or a check fails |
 | `renovate` | daily, on merges, on CI finishing | updates; merges its own PRs only when their plan is empty |
 

@@ -88,8 +88,8 @@ func (e *DefaultsError) Error() string {
 	return b.String()
 }
 
-// Apply makes every setting, in the order the shell scripts it replaces
-// did, and stops at the first call that fails:
+// Apply makes every setting, in this order, and stops at the first call
+// that fails:
 //
 //   - private vulnerability reporting on, for each repository, so that
 //     security reports arrive privately on the affected repo;

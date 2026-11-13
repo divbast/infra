@@ -77,16 +77,6 @@ actionlint:
 shellcheck:
     git ls-files --cached --others --exclude-standard '*.sh' | xargs -r shellcheck
 
-# Every test script under test/
-scripts-test:
-    #!/usr/bin/env -S mise exec -- bash
-    set -euo pipefail
-    shopt -s nullglob
-    for t in test/*.sh; do
-        echo "== ${t}"
-        bash "${t}"
-    done
-
 # The Go tests, under the race detector. internal/repotest reads the
 # module's graph, so it needs `just init` first
 go-test:
@@ -95,4 +85,4 @@ go-test:
 lint: fmt-check init validate tflint actionlint workflow-audit actions-check shellcheck
     reuse lint
 
-ci: lint test scripts-test go-test
+ci: lint test go-test

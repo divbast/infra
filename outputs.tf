@@ -2,11 +2,11 @@
 # SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
 
 output "repository_names" {
-  description = "Every managed repository, for scripts/assert-unmanaged.sh."
+  description = "Every managed repository, for infra-settings."
   value       = sort([for r in module.repository : r.name])
 }
 
 output "immutable_release_repositories" {
-  description = "Repositories whose releases are immutable, for scripts/immutable-releases.sh."
+  description = "Repositories whose releases are immutable, for infra-settings."
   value       = local.immutable_release_repositories
 }

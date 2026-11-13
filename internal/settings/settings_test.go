@@ -90,9 +90,8 @@ const (
 )
 
 // TestApply sets everything against a fake GitHub and compares every call
-// it made, in order, with what each case asks for: the cases
-// assert-unmanaged.sh and immutable-releases.sh were tested with, one to
-// one.
+// it made, in order, with what each case asks for: the cases the shell
+// scripts it replaced were tested with, one to one.
 func TestApply(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -149,8 +148,7 @@ func TestApply(t *testing.T) {
 }
 
 // TestApplyRefusesDefaults has a default code security configuration
-// answer the GET, and wants each one named and nothing set after it, as
-// assert-unmanaged.sh exited before immutable-releases.sh ran.
+// answer the GET, and wants each one named and nothing set after it.
 func TestApplyRefusesDefaults(t *testing.T) {
 	t.Parallel()
 	g := &github{t: t, defaults: `[

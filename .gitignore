@@ -7,3 +7,5 @@ tfplan
 *.tfstate
 *.tfstate.*
 crash.log
+# What the workflows build with go build -o .bin/
+.bin/

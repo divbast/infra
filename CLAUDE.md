@@ -68,10 +68,13 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   edge), so a rule moving into `tag-creation` stays enforced mid-apply.
   That holds in that direction only: moving a rule back out of
   `tag-creation` updates it first, so that apply needs the edge reversed.
-- **Immutable releases are set by script.** Provider 6.13.0 has no
-  attribute for them. A repo with `immutable_releases = true` in
-  `local.repositories` gets them from `scripts/immutable-releases.sh`
-  after each apply, and `checks.tf` reads them back for the drift run.
+- **What the provider cannot manage is set by `infra-settings`**
+  (`cmd/infra-settings`), after each apply, through the REST API with
+  `net/http`, never `gh`: private vulnerability reporting, the fork-PR
+  approval policy, no default code security configuration, and immutable
+  releases on a repo with `immutable_releases = true` in
+  `local.repositories`. Provider 6.13.0 has no attribute for any of them.
+  `checks.tf` reads each back for the drift run.
 - **`template` belongs only on an entry that creates a new repo.** The
   provider reads it on create alone, so on an existing repo it plans a
   diff forever. A new app repo is an entry with
