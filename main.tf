@@ -91,18 +91,25 @@ locals {
   # Repos whose published releases can never change. Provider 6.13.0 has
   # no attribute for it: infra-settings sets it after each apply, and
   # checks.tf reads it back.
-  immutable_release_repositories = sort([
-    for r in local.repositories : r.name if try(r.immutable_releases, false)
-  ])
+  immutable_release_repositories = module.entries.immutable_release_repositories
+}
+
+# Fails the plan on a key in local.repositories that nothing reads, and on
+# ci's releases no longer being immutable.
+module "entries" {
+  source       = "./modules/entries"
+  repositories = local.repositories
 }
 
 module "repository" {
-  source   = "./modules/repository"
-  for_each = local.repositories
+  source = "./modules/repository"
+  # Through module.entries, so that no entry reaches this module unchecked.
+  for_each = module.entries.repositories
 
   name = each.value.name
   # Conversion to the module's object type drops the attributes it does
   # not declare: name, and immutable_releases, which the root handles.
+  # module.entries has already refused any other key it would drop.
   settings                 = each.value
   maintainers_team_id      = module.organization.maintainers_team_id
   renovate_app_client_id   = var.renovate_app_client_id

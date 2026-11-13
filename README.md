@@ -17,6 +17,10 @@ turns the next daily drift run red.
   branch; tags guarded by two rulesets (below); Renovate's environment and
   kill switch.
 - `main.tf`: every repository, as one entry in `local.repositories`.
+- `modules/entries`: those entries as written. It fails the plan on a
+  key nothing reads, which conversion to the repository module's type
+  would otherwise drop without a word, and on `ci`'s releases no longer
+  being immutable.
 - `checks.tf` and `cmd/infra-settings`: the settings the provider cannot
   manage (private vulnerability reporting, the fork-PR approval policy,
   no default code security configuration, immutable releases).
@@ -84,7 +88,8 @@ that call GitHub need a fine-grained `GITHUB_TOKEN`; see
 
 ## Adding a repository
 
-Add one entry to `local.repositories` in `main.tf` and open a PR. The
+Add one entry to `local.repositories` in `main.tf` and open a PR. A key
+nothing reads, a misspelling among them, fails the PR's plan. The
 `divbast-infra` and `divbast-renovate` Apps are installed on all
 repositories, so a new one needs nothing by hand. A repo that runs
 Renovate names its kill switch, e.g. `BAIKAL_AUTOMERGE`. A repo that
