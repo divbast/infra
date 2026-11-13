@@ -265,7 +265,7 @@ var workflowChecks = []workflowCheck{
 			},
 		},
 	},
-	// checks.tf reads the settings back, and a failed check is only a
+	// modules/checks reads the settings back, and a failed check is only a
 	// warning in a plan: the drift run must turn one red.
 	{
 		name:  "a failed check fails the drift run",

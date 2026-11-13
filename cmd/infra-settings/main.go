@@ -5,8 +5,8 @@
 // after every apply: private vulnerability reporting on every managed
 // repository, the org's fork pull request approval policy, immutable
 // releases on the repositories that ask for them, and it refuses a default
-// code security configuration, naming each. checks.tf reads every one
-// back, and the drift run fails when one no longer holds.
+// code security configuration, naming each. modules/checks reads every
+// one back, and the drift run fails when one no longer holds.
 //
 // Usage:
 //

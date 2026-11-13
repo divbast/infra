@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: BSD-2-Clause
 # SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
 
-# Red whenever the live org differs from main, including the settings the
-# provider cannot manage, which checks.tf reads back.
+# Red when a plan of main is not empty, or when a check in modules/checks,
+# which reads back what a plan cannot compare, does not pass.
 name: drift
 
 on:

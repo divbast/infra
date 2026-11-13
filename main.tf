@@ -90,7 +90,7 @@ locals {
 
   # Repos whose published releases can never change. Provider 6.13.0 has
   # no attribute for it: infra-settings sets it after each apply, and
-  # checks.tf reads it back.
+  # modules/checks reads it back.
   immutable_release_repositories = module.entries.immutable_release_repositories
 }
 
@@ -114,4 +114,12 @@ module "repository" {
   maintainers_team_id      = module.organization.maintainers_team_id
   renovate_app_client_id   = var.renovate_app_client_id
   renovate_app_private_key = var.renovate_app_private_key
+}
+
+# Reads back what a plan cannot compare. A failed check is only a warning
+# in a plan; the drift run fails on any.
+module "checks" {
+  source                         = "./modules/checks"
+  repositories                   = module.entries.repositories
+  immutable_release_repositories = local.immutable_release_repositories
 }

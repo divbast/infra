@@ -17,7 +17,7 @@
 //
 //	0  every check passed, or -h asked for the usage
 //	1  a check failed, ended in error or is unknown, or the plan holds no
-//	   check results at all, which checks.tf would never leave it
+//	   check results at all, which modules/checks would never leave it
 //	2  the command line is wrong, or stdin is not the JSON of a plan
 package main
 

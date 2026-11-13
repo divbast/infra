@@ -88,10 +88,11 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   approval policy, no default code security configuration, and immutable
   releases on a repo with `immutable_releases = true` in
   `local.repositories`. Provider 6.13.0 has no attribute for any of them.
-  `checks.tf` reads each back for the drift run, on every repo, and also
-  reads each repo's topics, commit signoff, forking and default branch:
-  the provider marks those optional and computed, so a plan never shows
-  a hand edit to one the config leaves unset or empty.
+  `modules/checks` reads each back for the drift run: the two repo
+  settings on every repo, the two org settings once. It also reads each
+  repo's topics, commit signoff, forking and default branch: the provider
+  marks those optional and computed, so a plan never shows a hand edit to
+  one the config leaves unset or empty.
 - **A new key for `local.repositories` goes in `modules/entries` too.**
   Conversion to the repository module's object type drops a key it does
   not declare without a word, so `modules/entries` fails the plan on any
