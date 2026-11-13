@@ -330,6 +330,29 @@ var workflowChecks = []workflowCheck{
 			},
 		},
 	},
+	// Two merges close together queue on the tofu group, and the older
+	// run, going second, would put the org back to the older config.
+	{
+		name:  "the apply job checks out main",
+		check: applyChecksOutMain,
+		mutants: []workflowMutant{
+			{
+				name: "apply.yml checking out the pushed commit", file: "apply.yml",
+				from: "          ref: main\n", to: "",
+				want: dir + "apply.yml: the apply job checks out the commit that triggered it, not main",
+			},
+			{
+				name: "apply.yml checking out the run's SHA", file: "apply.yml",
+				from: "          ref: main\n", to: "          ref: ${{ github.sha }}\n",
+				want: dir + "apply.yml: the apply job checks out the commit that triggered it, not main",
+			},
+			{
+				name: "apply.yml checking out nothing", file: "apply.yml",
+				expr: `      - uses: actions/checkout@[0-9a-f]{40} # v\S+\n`, to: "      - name: No checkout\n",
+				want: dir + "apply.yml: the apply job checks out nothing",
+			},
+		},
+	},
 	// A skipped required check counts as passing, so the aggregator always
 	// runs.
 	{
@@ -688,6 +711,25 @@ func onlyApplyDeploys(workflows map[string]string) []string {
 		}
 	}
 	return problems
+}
+
+// usesCheckout reports whether l is a step's uses: line for
+// actions/checkout.
+func usesCheckout(l line) bool {
+	return strings.HasPrefix(strings.TrimPrefix(strings.TrimSpace(l.text), "- "), "uses: actions/checkout@")
+}
+
+func applyChecksOutMain(workflows map[string]string) []string {
+	for _, step := range steps(jobsOf(linesOf(workflows["apply.yml"]))["apply"]) {
+		if !slices.ContainsFunc(step, usesCheckout) {
+			continue
+		}
+		if block(step, indent(step[0].text)+2, "with")["ref"] != "main" {
+			return []string{dir + "apply.yml: the apply job checks out the commit that triggered it, not main (line " + strconv.Itoa(step[0].n) + ")"}
+		}
+		return nil
+	}
+	return []string{dir + "apply.yml: the apply job checks out nothing"}
 }
 
 func requiredRunsAlways(workflows map[string]string) []string {
