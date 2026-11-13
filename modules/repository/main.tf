@@ -53,8 +53,11 @@ resource "github_repository" "this" {
   }
 
   lifecycle {
-    # Removing a repo from the config forgets it rather than deleting it;
-    # archive_on_destroy is the backstop if it is ever destroyed anyway.
+    # Removing a repo from the config forgets the repo itself rather than
+    # deleting it, but destroys everything else this module made for it:
+    # its rulesets, environments, secrets, variables, team access and
+    # alerts. archive_on_destroy is the backstop if the repo is ever
+    # destroyed anyway.
     destroy = false
   }
 }

@@ -103,8 +103,10 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   never add it to an existing entry. `oci-image-template` itself is made
   with `auto_init` and `is_template = true`, not from a template, and its
   kill switch is `OCI_IMAGE_TEMPLATE_AUTOMERGE`.
-- **Destroy guards stay.** Repos are forgotten, not deleted, when removed
-  from config; the org-wide resources refuse destruction, because
-  destroying them resets them. `internal/repotest` holds the line.
+- **Destroy guards stay.** Removing an entry from `local.repositories`
+  destroys that repo's rulesets, environments, secrets, variables, team
+  access and alerts; only the repo itself is forgotten rather than
+  deleted. The org-wide resources refuse destruction, because destroying
+  them resets them. `internal/repotest` holds the line.
 - REUSE headers on every file, BSD-2-Clause. Files without comment syntax
   or rewritten by tools get a `.license` sidecar.
