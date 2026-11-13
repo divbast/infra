@@ -99,9 +99,13 @@ that call GitHub need a fine-grained `GITHUB_TOKEN`; see
 
 Add one entry to `local.repositories` in `main.tf` and open a PR. A key
 of the entry's own that nothing reads, a misspelling among them, fails
-the PR's plan. A key inside one of its values, such as an `environments`
-entry, is not checked, and conversion drops a misspelt one there without
-a word. The `divbast-infra` and `divbast-renovate` Apps are installed on
+the PR's plan. Inside one of its values, such as `template` or an
+`environments` entry, every key the module declares is required, so a
+misspelt one fails the plan too, as missing. An extra key there is what
+goes unseen: conversion drops it without a word. The likeliest is
+`include_all_branches` in `template`, the provider's own name for it,
+which the module always sets to false and never reads from the entry.
+The `divbast-infra` and `divbast-renovate` Apps are installed on
 all repositories, so a new one needs nothing by hand. A repo that runs
 Renovate names its kill switch, e.g. `BAIKAL_AUTOMERGE`. A repo that
 publishes releases may set `tag_creator_app_ids` and
@@ -109,9 +113,15 @@ publishes releases may set `tag_creator_app_ids` and
 
 From here on, a new app repo is an entry with
 `template = { owner = "divbast", repository = "oci-image-template" }`.
-The provider reads `template` only when it creates the repo, so never add
-it to an existing entry: it would show a diff in every plan. The template
-repo itself is an ordinary `auto_init` entry with `is_template = true`,
+The provider uses `template` only to create the repo, but on every
+refresh it reads back the template the repo was made from. So never add
+it to an existing entry, and once the repo exists, keep the block in its
+entry for good: either way, a block that disagrees with the repo shows a
+diff in every plan, which turns the drift run red, and every Renovate
+PR's `plan-empty` with it. The new repo arrives as one commit with
+nothing renamed; the template's README lists what it must change, under
+[Making a new app](https://github.com/divbast/oci-image-template#making-a-new-app).
+The template repo itself is an ordinary `auto_init` entry with `is_template = true`,
 not made from a template. Its Renovate kill switch is
 `OCI_IMAGE_TEMPLATE_AUTOMERGE`; a repo made from it needs its own
 variable name, in both its `renovate.yml` and its entry here.
