@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: BSD-2-Clause
 # SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
 
-# Every gate, with no secrets: tofu inits with -backend=false here.
+# Every gate, with no secrets, through divbast/ci's lint.yml: just setup,
+# then just lint, which inits tofu with -backend=false.
 name: ci
 
 on:
@@ -18,26 +19,13 @@ concurrency:
 jobs:
   lint:
     name: lint
-    runs-on: ubuntu-26.04
-    timeout-minutes: 20
+    uses: divbast/ci/.github/workflows/lint.yml@1b8878f21afec6164c6ef155c7cad7b8b87d0c9d # v1.12.0
     permissions:
       contents: read # checkout
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
 
-      # Installs mise.toml's tools
-      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
-
-      - run: just ci
-        env:
-          # pinact and zizmor query the API for the actions they check
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # The one check the ruleset requires, so adding a job never means editing
-  # the ruleset. A skipped required check counts as passing, so this runs
-  # always and treats skipped and cancelled as failure.
+  # The one check the ruleset requires beside plan, so adding a job never
+  # means editing the ruleset. A skipped required check counts as passing,
+  # so this runs always and treats skipped and cancelled as failure.
   required:
     name: required
     needs: [lint]
