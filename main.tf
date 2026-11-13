@@ -89,8 +89,8 @@ locals {
   }
 
   # Repos whose published releases can never change. Provider 6.13.0 has
-  # no attribute for it: infra-settings sets it after each
-  # apply, and checks.tf reads it back.
+  # no attribute for it: infra-settings sets it after each apply, and
+  # checks.tf reads it back.
   immutable_release_repositories = sort([
     for r in local.repositories : r.name if try(r.immutable_releases, false)
   ])
