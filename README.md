@@ -72,7 +72,7 @@ that in the repo's settings, and the drift run stays red until they do.
 | `plan` | PRs from this repository | the plan against the live org, on the run's summary page |
 | `apply` | push to main, or by hand | a fresh plan, applied, then `infra-settings` |
 | `drift` | daily, or by hand | red if a plan of main is not empty or a check fails |
-| `renovate` | daily, on merges, on CI or the plan finishing | updates, through divbast/ci's `renovate.yml`; merges its own PRs only when their plan is empty |
+| `renovate` | daily, on merges, on CI or the plan finishing | updates, through divbast/ci's `renovate.yml`; a PR whose plan would change the org waits for a person once `plan-empty` is red |
 | `stall` | daily, or by hand | red when updates stop flowing: a Renovate PR stuck or left open, or Renovate silent, through divbast/ci's `stall.yml` |
 
 `ci`, `renovate` and `stall` call divbast/ci's shared workflows, all at
