@@ -66,7 +66,7 @@ locals {
     }
     renovate_config = {
       name            = "renovate-config"
-      description     = "The shared Renovate preset for divbast's repositories"
+      description     = "The shared Renovate presets for divbast's repositories"
       auto_init       = true
       required_checks = ["required"]
       renovate        = { automerge_variable = "RENOVATE_CONFIG_AUTOMERGE" }
