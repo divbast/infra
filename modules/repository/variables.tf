@@ -24,8 +24,10 @@ variable "settings" {
     # Marks the repo as a template others can be created from.
     is_template = optional(bool, false)
     # Create the repo from a template. Only an entry that creates a new repo
-    # may set it: the provider reads it on create alone, so on an existing
-    # repo it shows a diff in every plan.
+    # may set it, and it stays once the repo exists: the provider uses it
+    # only to create the repo but reads it back on every refresh, so adding
+    # it to an existing repo, or removing it later, shows a diff in every
+    # plan.
     template = optional(object({
       owner      = string
       repository = string

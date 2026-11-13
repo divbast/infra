@@ -124,9 +124,9 @@ jobs:
             echo '</details>'
           } >> "${GITHUB_STEP_SUMMARY}"
 
-  # Renovate merges its own PR here only when the plan is empty. Not a
-  # required check: red stops Renovate, and a person can still read the
-  # plan and merge.
+  # Red when Renovate's PR would change the org, and the PR then waits for
+  # a person. Not a required check: red stops Renovate, and a person can
+  # still read the plan and merge.
   plan-empty:
     name: plan-empty
     needs: [plan]

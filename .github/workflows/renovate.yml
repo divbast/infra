@@ -6,8 +6,8 @@
 # INFRA_AUTOMERGE is `enabled`, compared without regard to case. Unset,
 # empty or anything else turns automerge off from the next run.
 #
-# Here a pull request whose plan would change the org never merges itself:
-# plan.yml's plan-empty check goes red and Renovate waits for a person.
+# Here a pull request whose plan would change the org waits for a person
+# once plan.yml's plan-empty check is red.
 
 name: renovate
 

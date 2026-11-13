@@ -96,13 +96,21 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
 - **A new key for `local.repositories` goes in `modules/entries` too.**
   Conversion to the repository module's object type drops a key it does
   not declare without a word, so `modules/entries` fails the plan on any
-  entry's own key missing from its `allowed_keys`. Keys inside an
-  entry's values, such as an `environments` entry, are not checked.
-- **`template` belongs only on an entry that creates a new repo.** The
-  provider reads it on create alone, so on an existing repo it plans a
-  diff forever. A new app repo is an entry with
+  entry's own key missing from its `allowed_keys`. Inside an entry's
+  values, such as `template` or an `environments` entry, every key the
+  module declares is required, so a misspelt one fails conversion; an
+  extra one is dropped without a word, the provider's own
+  `include_all_branches` in `template` likeliest among them.
+- **`template` belongs only on an entry that creates a new repo, and
+  stays there.** The provider uses it only to create the repo, but reads
+  it back from the repo on every refresh, so adding it to an existing
+  repo, or removing it once its repo exists, plans a diff forever: the
+  drift run goes red, and so does every Renovate PR's `plan-empty`. A new
+  app repo is an entry with
   `template = { owner = "divbast", repository = "oci-image-template" }`;
-  never add it to an existing entry. `oci-image-template` itself is made
+  never add it to an existing entry, and never take it out of one. What
+  the new repo must change is the template README's "Making a new app"
+  list. `oci-image-template` itself is made
   with `auto_init` and `is_template = true`, not from a template, and its
   kill switch is `OCI_IMAGE_TEMPLATE_AUTOMERGE`.
 - **Destroy guards stay.** Removing an entry from `local.repositories`

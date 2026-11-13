@@ -17,17 +17,28 @@ import (
 const secret = "s3cr3t-value"
 
 // plan returns what tofu show -json prints for a plan whose check blocks
-// ended with statuses, by address, beside a resource change and a
-// variable holding secret.
+// in the root module ended with statuses, by name, beside a resource
+// change and a variable holding secret.
 func plan(statuses ...string) string {
+	return planIn("", statuses...)
+}
+
+// planIn is plan for check blocks in a child module, such as
+// module.checks, where the drift run's checks live: tofu 1.13.9 adds the
+// module to each address, and displays it as MODULE.check.NAME.
+func planIn(module string, statuses ...string) string {
+	prefix, field := "check.", ""
+	if module != "" {
+		prefix, field = module+".check.", fmt.Sprintf(`"module": %q, `, module)
+	}
 	var checks []string
 	for i := 0; i+1 < len(statuses); i += 2 {
 		checks = append(checks, fmt.Sprintf(`{
-			"address": {"kind": "check", "name": %[1]q, "to_display": "check.%[1]s"},
+			"address": {"kind": "check", %[4]s"name": %[1]q, "to_display": "%[3]s%[1]s"},
 			"status": %[2]q,
-			"instances": [{"address": {"to_display": "check.%[1]s"}, "status": %[2]q,
+			"instances": [{"address": {%[4]s"to_display": "%[3]s%[1]s"}, "status": %[2]q,
 				"problems": [{"message": "x"}]}]
-		}`, statuses[i], statuses[i+1]))
+		}`, statuses[i], statuses[i+1], prefix, field))
 	}
 	return `{
 		"format_version": "1.2",
@@ -68,6 +79,17 @@ func TestRead(t *testing.T) {
 				{Address: "check.a", Status: "error"}, {Address: "check.b", Status: "unknown"}, {Address: "check.c", Status: "pass"},
 			},
 			failed: []string{"check.a", "check.b"},
+		},
+		{
+			// Where the drift run's checks live: infra-checks must fail on one
+			// whatever module holds it
+			name: "a check in module.checks failed",
+			plan: planIn("module.checks", "fork_pr_approval", "pass", "topics", "fail"),
+			checks: []planchecks.Check{
+				{Address: "module.checks.check.fork_pr_approval", Status: "pass"},
+				{Address: "module.checks.check.topics", Status: "fail"},
+			},
+			failed: []string{"module.checks.check.topics"},
 		},
 		{name: "no checks", plan: plan()},
 		{name: "no checks key", plan: `{"format_version": "1.2"}`},
