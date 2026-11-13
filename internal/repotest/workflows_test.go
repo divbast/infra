@@ -159,13 +159,46 @@ var workflowChecks = []workflowCheck{
 			},
 			{
 				name: "drift.yml installing everything", file: "drift.yml",
-				from: "        with:\n          install_args: " + installArgs["drift.yml"].args + "\n", to: "",
+				from: "          install_args: " + installArgs["drift.yml"].args + "\n", to: "",
 				want: dir + "drift.yml: mise-action installs more than tofu and Go",
 			},
 			{
 				name: "plan.yml without its mise step", file: "plan.yml",
-				expr: `      - uses: jdx/mise-action@[0-9a-f]{40} # v\S+\n        with:\n          install_args: ` + installArgs["plan.yml"].args + `\n`,
+				expr: `      - uses: jdx/mise-action@[0-9a-f]{40} # v\S+\n        with:\n          version: .*\n          install_args: ` + installArgs["plan.yml"].args + `\n`,
 				want: dir + "plan.yml: no mise-action step",
+			},
+		},
+	},
+	{
+		// The three mise steps hold the admin token: an unpinned mise would
+		// be whichever release was newest when the step ran (IN-7).
+		name:  "every mise step installs the mise the workflow pins",
+		check: miseVersionPinned,
+		mutants: []workflowMutant{
+			{
+				name: "apply.yml without the step's version", file: "apply.yml",
+				from: "          version: ${{ env.MISE_VERSION }}\n", to: "",
+				want: dir + "apply.yml: mise-action does not install version ${{ env.MISE_VERSION }}",
+			},
+			{
+				name: "plan.yml pinning a literal that Renovate cannot move", file: "plan.yml",
+				from: "          version: ${{ env.MISE_VERSION }}\n", to: "          version: 2026.11.7\n",
+				want: dir + "plan.yml: mise-action does not install version ${{ env.MISE_VERSION }}",
+			},
+			{
+				name: "drift.yml without MISE_VERSION", file: "drift.yml",
+				expr: `(?m)^  MISE_VERSION: .*\n`, to: "",
+				want: dir + "drift.yml: no top-level env MISE_VERSION",
+			},
+			{
+				name: "apply.yml without the Renovate marker", file: "apply.yml",
+				from: "  # renovate: datasource=github-releases depName=jdx/mise\n", to: "",
+				want: dir + "apply.yml: MISE_VERSION lacks the renovate marker for jdx/mise",
+			},
+			{
+				name: "plan.yml with a MISE_VERSION that is not a release", file: "plan.yml",
+				expr: `(?m)^  MISE_VERSION: .*\n`, to: "  MISE_VERSION: latest\n",
+				want: dir + "plan.yml: MISE_VERSION is not an exact release",
 			},
 		},
 	},
@@ -201,7 +234,7 @@ var workflowChecks = []workflowCheck{
 			},
 			{
 				name: "drift.yml giving the whole workflow the passphrase", file: "drift.yml",
-				from: "permissions: {}\n\njobs:\n", to: "permissions: {}\n\nenv:\n  TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}\n\njobs:\n",
+				from: "  MISE_VERSION: 2026.11.7\n\njobs:\n", to: "  MISE_VERSION: 2026.11.7\n  TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}\n\njobs:\n",
 				want: dir + "drift.yml: credentials in workflow-level env are visible to every step",
 			},
 		},
@@ -529,6 +562,47 @@ func installOnlyWhatTheyRun(workflows map[string]string) []string {
 		}
 		if !found {
 			problems = append(problems, dir+f+": no mise-action step")
+		}
+	}
+	return problems
+}
+
+// miseMarker is the comment Renovate's custom manager reads, which must
+// directly precede MISE_VERSION.
+const miseMarker = "# renovate: datasource=github-releases depName=jdx/mise"
+
+// miseRelease is an exact mise release, calendar-versioned.
+var miseRelease = regexp.MustCompile(`^\d{4}\.\d+\.\d+$`)
+
+// miseVersionPinned wants each tofu workflow to set MISE_VERSION to an exact
+// release under the renovate marker, in its top-level env, and every mise
+// step in it to install that version.
+func miseVersionPinned(workflows map[string]string) []string {
+	var problems []string
+	for _, f := range present(workflows, tofuWorkflows) {
+		raw := strings.Split(workflows[f], "\n")
+		at := slices.IndexFunc(raw, func(l string) bool { return strings.HasPrefix(l, "  MISE_VERSION:") })
+		switch {
+		case at < 0:
+			problems = append(problems, dir+f+": no top-level env MISE_VERSION")
+		default:
+			if strings.TrimSpace(raw[at-1]) != miseMarker {
+				problems = append(problems, dir+f+": MISE_VERSION lacks the renovate marker for jdx/mise")
+			}
+			if !miseRelease.MatchString(strings.TrimSpace(strings.TrimPrefix(raw[at], "  MISE_VERSION:"))) {
+				problems = append(problems, dir+f+": MISE_VERSION is not an exact release")
+			}
+		}
+		for _, job := range jobsOf(linesOf(workflows[f])) {
+			for _, step := range steps(job) {
+				if !slices.ContainsFunc(step, usesMise) {
+					continue
+				}
+				if v := block(step, indent(step[0].text)+2, "with")["version"]; v != "${{ env.MISE_VERSION }}" {
+					problems = append(problems, dir+f+": mise-action does not install version ${{ env.MISE_VERSION }}: version "+
+						strconv.Quote(v)+" at line "+strconv.Itoa(step[0].n))
+				}
+			}
 		}
 	}
 	return problems

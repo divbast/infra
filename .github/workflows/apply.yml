@@ -11,6 +11,13 @@ on:
 
 permissions: {}
 
+# The mise every jdx/mise-action step below installs, which would otherwise
+# be the newest release at least a day old when the step runs. Renovate
+# moves it.
+env:
+  # renovate: datasource=github-releases depName=jdx/mise
+  MISE_VERSION: 2026.11.7
+
 jobs:
   apply:
     name: apply
@@ -46,6 +53,7 @@ jobs:
       # more download executing next to the admin token.
       - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
         with:
+          version: ${{ env.MISE_VERSION }}
           install_args: aqua:opentofu/opentofu core:go
 
       # From that checkout, before the App token exists, and with no
