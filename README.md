@@ -121,9 +121,9 @@ diff in every plan, which turns the drift run red, and every Renovate
 PR's `plan-empty` with it. The new repo arrives as one commit with
 nothing renamed; the template's README lists what it must change, under
 [Making a new app](https://github.com/divbast/oci-image-template#making-a-new-app).
-The template repo itself is an ordinary `auto_init` entry with `is_template = true`,
-not made from a template. Its Renovate kill switch is
-`OCI_IMAGE_TEMPLATE_AUTOMERGE`; a repo made from it needs its own
+The template repo itself is an ordinary `auto_init` entry with
+`is_template = true`, not made from a template. Its Renovate kill switch
+is `OCI_IMAGE_TEMPLATE_AUTOMERGE`; a repo made from it needs its own
 variable name, in both its `renovate.yml` and its entry here.
 
 ## Stopping Renovate's merges
