@@ -22,6 +22,11 @@ turns the next daily drift run red.
   no default code security configuration, immutable releases).
   `infra-settings` sets them through the REST API after each apply, and
   `checks.tf` reads them back.
+- `cmd/infra-checks`: the drift run's filter over the JSON plan, which
+  fails on any check that did not pass and prints only addresses.
+- `internal/repotest`: Go tests of this repository's own files: the
+  workflows' properties, the destroy guards, the graph orderings the
+  provider does not know about, and the actions allowlist.
 
 ## Tags and releases
 
@@ -50,15 +55,32 @@ does that in the repo's settings.
 
 | Workflow | When | What |
 |---|---|---|
-| `ci` | every PR and push | every gate (`just ci`), no secrets |
+| `ci` | every PR and push | every gate (`just lint`, through divbast/ci's `lint.yml`), no secrets |
 | `plan` | PRs from this repository | the plan against the live org, on the run's summary page |
 | `apply` | push to main, or by hand | a fresh plan, applied, then `infra-settings` |
 | `drift` | daily, or by hand | red if the org differs from main or a check fails |
-| `renovate` | daily, on merges, on CI finishing | updates; merges its own PRs only when their plan is empty |
+| `renovate` | daily, on merges, on CI or the plan finishing | updates, through divbast/ci's `renovate.yml`; merges its own PRs only when their plan is empty |
+| `stall` | daily, or by hand | red when updates stop flowing: a Renovate PR stuck or left open, or Renovate silent, through divbast/ci's `stall.yml` |
+
+`ci`, `renovate` and `stall` call divbast/ci's shared workflows, all at
+one pinned release, and Renovate moves that pin in one pull request.
+`plan`, `apply` and `drift` stay here: they hold the org-admin token.
 
 State lives in a private Backblaze B2 bucket, encrypted by OpenTofu
 before it leaves the runner. B2 has no state locking, so every workflow
 that runs tofu queues on one concurrency group.
+
+## Working here
+
+`just setup` checks divbast/ci out into `.ci` at the commit the
+workflows pin, and installs the toolchain from `mise.toml`. `just ci`
+runs every gate, as CI does: divbast/ci's shared lint recipes (pinact,
+zizmor, actionlint, ShellCheck, shfmt and `reuse lint`), `tofu fmt`,
+`validate`, TFLint, `tofu test` in each module, and the Go gates and
+tests. The Go tests read the repository module's graph, so `just lint`
+runs `just init` first, which needs no state or credentials. The gates
+that call GitHub need a fine-grained `GITHUB_TOKEN`; see
+[ci's README](https://github.com/divbast/ci#local-github-token).
 
 ## Adding a repository
 

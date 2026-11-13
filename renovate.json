@@ -1,15 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "semanticCommits": "disabled",
-  "rebaseWhen": "behind-base-branch",
-  "automerge": true,
-  "automergeType": "pr",
-  "automergeStrategy": "squash",
-  "platformAutomerge": false,
-  "ignoreTests": false,
-  "commitMessageAction": "update",
-  "commitBody": "{{#if (equals updateType 'digest')}}Upstream rebuilt the tag, so the pinned digest is stale.{{else}}Upstream published a newer release.{{/if}}\n\nDeveloped-by: Aryan Ameri <github@aryan.ameri.coffee>\nAssisted-by: <Renovate:renovate-{{{renovateVersion}}}>",
+  "extends": ["github>divbast/renovate-config"],
   "packageRules": [
     {
       "description": "Providers and modules come from the OpenTofu registry. Renovate defaults to Terraform's, whose hashes do not match what tofu init writes into the lock file.",
@@ -31,16 +22,6 @@
       "description": "Subject prefix for the OpenTofu configuration: the provider and required_version.",
       "matchManagers": ["terraform"],
       "commitMessagePrefix": "tofu:"
-    },
-    {
-      "description": "Subject prefix for the local toolchain in mise.toml.",
-      "matchManagers": ["mise"],
-      "commitMessagePrefix": "tools:"
-    },
-    {
-      "description": "Subject prefix for the workflows' action pins and the Renovate image itself.",
-      "matchManagers": ["github-actions"],
-      "commitMessagePrefix": "ci:"
     }
   ]
 }
