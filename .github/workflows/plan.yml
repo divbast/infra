@@ -14,7 +14,7 @@ permissions: {}
 # moves it.
 env:
   # renovate: datasource=github-releases depName=jdx/mise
-  MISE_VERSION: 2026.11.7
+  MISE_VERSION: 2026.11.8
 
 # A newer push to a PR supersedes its older plan. The plan job also
 # queues on the repo-wide tofu group below.
