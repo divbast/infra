@@ -234,7 +234,8 @@ var workflowChecks = []workflowCheck{
 			},
 			{
 				name: "drift.yml giving the whole workflow the passphrase", file: "drift.yml",
-				from: "  MISE_VERSION: 2026.11.7\n\njobs:\n", to: "  MISE_VERSION: 2026.11.7\n  TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}\n\njobs:\n",
+				// Anchored on the marker line, not the pin's value, which Renovate moves.
+				from: "  # renovate: datasource=github-releases depName=jdx/mise\n", to: "  TF_VAR_state_passphrase: ${{ secrets.STATE_PASSPHRASE }}\n  # renovate: datasource=github-releases depName=jdx/mise\n",
 				want: dir + "drift.yml: credentials in workflow-level env are visible to every step",
 			},
 		},
@@ -404,11 +405,46 @@ var workflowChecks = []workflowCheck{
 	},
 }
 
+// miseMoves are the releases a Renovate bump of MISE_VERSION may land on.
+// Every check and mutant must hold for each, so that a test anchored on the
+// pin's current value fails here, at the PR that adds it, and not at the PR
+// Renovate opens next.
+var miseMoves = []string{"2026.11.8", "2026.12.0"}
+
+// moveMise returns workflows with every MISE_VERSION set to version.
+func moveMise(workflows map[string]string, version string) map[string]string {
+	moved := maps.Clone(workflows)
+	re := regexp.MustCompile(`(?m)^( {2}MISE_VERSION: ).*$`)
+	for f, text := range moved {
+		moved[f] = re.ReplaceAllString(text, "${1}"+version)
+	}
+	return moved
+}
+
 // TestWorkflowProperties runs each check over the workflows as they are,
-// then over each of its mutants, whose own problem it must return.
+// then over each of its mutants, whose own problem it must return. It does
+// so again after Renovate's bump of the mise pin, which moves nothing a
+// check or mutant may depend on.
 func TestWorkflowProperties(t *testing.T) {
 	t.Parallel()
-	workflows := readWorkflows(t)
+	committed := readWorkflows(t)
+	t.Run("as committed", func(t *testing.T) {
+		t.Parallel()
+		checkWorkflows(t, committed)
+	})
+	for _, v := range miseMoves {
+		t.Run("mise moved to "+v, func(t *testing.T) {
+			t.Parallel()
+			if !strings.Contains(committed["drift.yml"], "  MISE_VERSION: ") {
+				t.Fatal("no pin to move")
+			}
+			checkWorkflows(t, moveMise(committed, v))
+		})
+	}
+}
+
+func checkWorkflows(t *testing.T, workflows map[string]string) {
+	t.Helper()
 	for _, c := range workflowChecks {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
@@ -568,7 +604,10 @@ func installOnlyWhatTheyRun(workflows map[string]string) []string {
 }
 
 // miseMarker is the comment Renovate's custom manager reads, which must
-// directly precede MISE_VERSION.
+// directly precede MISE_VERSION. It copies the regex shape of the mise
+// manager in the shared preset's default.json in divbast/renovate-config,
+// so a change there must be made here too. That repository's CLAUDE.md
+// lists every copy.
 const miseMarker = "# renovate: datasource=github-releases depName=jdx/mise"
 
 // miseRelease is an exact mise release, calendar-versioned.
