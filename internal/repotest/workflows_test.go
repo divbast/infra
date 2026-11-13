@@ -22,7 +22,7 @@ var tofuWorkflows = []string{"plan.yml", "apply.yml", "drift.yml"}
 var installArgs = map[string]string{
 	"plan.yml":  "aqua:opentofu/opentofu",
 	"apply.yml": "aqua:opentofu/opentofu core:go",
-	"drift.yml": "aqua:opentofu/opentofu aqua:jqlang/jq",
+	"drift.yml": "aqua:opentofu/opentofu core:go",
 }
 
 // workflowCheck is one property of the workflows that no linter checks,
@@ -146,6 +146,11 @@ var workflowChecks = []workflowCheck{
 		mutants: []workflowMutant{
 			{name: "plan.yml summarising the JSON plan", file: "plan.yml", from: "tofu show -no-color tfplan", to: "tofu show -json tfplan"},
 			{name: "drift.yml keeping a copy", file: "drift.yml", from: "tofu show -json tfplan | ", to: "tofu show -json tfplan | tee plan.json | "},
+			{name: "drift.yml filtering with jq", file: "drift.yml", from: "| .bin/infra-checks", to: "| jq -e '.checks'"},
+			{
+				name: "drift.yml printing the plan when a check fails", file: "drift.yml",
+				from: "| .bin/infra-checks", to: "| .bin/infra-checks || tofu show -json tfplan",
+			},
 		},
 	},
 	// What the provider cannot manage is set after each apply; a repo
@@ -180,7 +185,11 @@ var workflowChecks = []workflowCheck{
 		name:  "a failed check fails the drift run",
 		check: failedCheckFailsDrift,
 		mutants: []workflowMutant{
-			{name: "drift.yml failing only on fail", file: "drift.yml", from: `select(.status != "pass")`, to: `select(.status == "fail")`},
+			{name: "drift.yml ignoring the filter", file: "drift.yml", from: "| .bin/infra-checks", to: "| .bin/infra-checks || true"},
+			{
+				name: "drift.yml running a filter it did not build", file: "drift.yml",
+				from: "run: go build -o .bin/ ./cmd/infra-checks", to: "run: 'true'",
+			},
 			{
 				name: "drift.yml carrying on", file: "drift.yml",
 				from: "      - name: Fail on any failed check\n", to: "      - name: Fail on any failed check\n        continue-on-error: true\n",
@@ -383,16 +392,17 @@ func noJobLevelCredentials(workflows map[string]string) []string {
 }
 
 // filteredPlanJSON is the one way tofu show -json may run: piped straight
-// into jq -e printing only the addresses of checks.
-var filteredPlanJSON = regexp.MustCompile(`tofu show -json[^|]*\| *jq -e.*\.address`)
+// into infra-checks, which decodes only the checks' addresses and statuses
+// and prints only addresses, and into nothing after it.
+var filteredPlanJSON = regexp.MustCompile(`^(?:run:\s+)?tofu show -json\s+[^\s|;&<>]+\s*\|\s*\.bin/infra-checks$`)
 
 func planJSONFiltered(workflows map[string]string) []string {
 	var problems []string
 	for _, f := range slices.Sorted(maps.Keys(workflows)) {
 		for _, l := range linesOf(workflows[f]) {
-			if strings.Contains(l.text, "tofu show -json") && !filteredPlanJSON.MatchString(l.text) {
+			if strings.Contains(l.text, "tofu show -json") && !filteredPlanJSON.MatchString(strings.TrimSpace(l.text)) {
 				problems = append(problems, f+":"+strconv.Itoa(l.n)+
-					": tofu show -json not piped straight into jq -e printing only addresses")
+					": tofu show -json not piped straight into .bin/infra-checks, which prints only addresses")
 			}
 		}
 	}
@@ -428,14 +438,24 @@ func noTofuProcessSubstitution(workflows map[string]string) []string {
 	return problems
 }
 
+// failedCheckFailsDrift wants a drift.yml step piping the plan into
+// infra-checks, whose own tests see it fail on a check that did not pass,
+// built from this commit before it runs, and a step that does not carry on
+// when it fails.
 func failedCheckFailsDrift(workflows map[string]string) []string {
-	for _, job := range jobsOf(linesOf(workflows["drift.yml"])) {
+	lines := linesOf(workflows["drift.yml"])
+	built := firstLine(lines, "go build -o .bin/ ./cmd/infra-checks")
+	for _, job := range jobsOf(lines) {
 		for _, step := range steps(job) {
-			if !slices.ContainsFunc(step, func(l line) bool { return strings.Contains(l.text, `select(.status != "pass")`) }) {
+			at := slices.IndexFunc(step, func(l line) bool { return filteredPlanJSON.MatchString(strings.TrimSpace(l.text)) })
+			if at < 0 {
 				continue
 			}
 			if v, ok := stepField(step, "continue-on-error"); ok && v != "false" {
 				return []string{"drift.yml:" + strconv.Itoa(step[0].n) + ": the step that fails on a failed check carries on"}
+			}
+			if built == 0 || built > step[at].n {
+				return []string{"drift.yml: .bin/infra-checks is not built from ./cmd/infra-checks before it runs"}
 			}
 			return nil
 		}

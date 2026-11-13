@@ -58,7 +58,10 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
 - **Never set `GITHUB_OWNER`, `GITHUB_ORGANIZATION` or `GITHUB_APP_*`** in
   a job that runs tofu: they override the provider's owner and token.
 - **Never publish `tofu show -json` output.** It holds sensitive values
-  in full, and this repository is public. Use `tofu show -no-color`.
+  in full, and this repository is public. Use `tofu show -no-color`. The
+  drift run reads its check results through `infra-checks`
+  (`cmd/infra-checks`), which decodes only each check's address and
+  status, and prints only addresses.
 - **Tags take two rulesets.** A bypass covers every rule in its ruleset,
   so `tag-creation` (org admins, plus the Apps in a repo's
   `tag_creator_app_ids`) is separate from `tag-update-deletion` (org
