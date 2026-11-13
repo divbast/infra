@@ -54,6 +54,9 @@ type StatusError struct {
 	Message string
 }
 
+// Error names the call, its status and GitHub's message, if any, as
+// "PUT /repos/o/r/immutable-releases: 403 Forbidden: message". It never
+// holds the token, which the request carried only in a header.
 func (e *StatusError) Error() string {
 	msg := e.Call + ": " + strconv.Itoa(e.Status) + " " + http.StatusText(e.Status)
 	if e.Message != "" {
@@ -79,6 +82,9 @@ type DefaultsError struct {
 	Defaults []Default
 }
 
+// Error says a default code security configuration is set and must be
+// removed, then names each on a line of its own, with the repositories it
+// is the default for.
 func (e *DefaultsError) Error() string {
 	var b strings.Builder
 	b.WriteString("a default code security configuration is set; remove it so OpenTofu's per-repo settings stand:")
