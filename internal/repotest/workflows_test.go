@@ -300,6 +300,36 @@ var workflowChecks = []workflowCheck{
 			},
 		},
 	},
+	// GitHub writes a deployment for every run of a job that names an
+	// environment, unless it says deployment: false, and the environment's
+	// secrets and branch policy hold either way. A plan on every push and a
+	// daily drift run would bury the applies in that history.
+	{
+		name:  "only the apply job records a deployment",
+		check: onlyApplyDeploys,
+		mutants: []workflowMutant{
+			{
+				name: "plan.yml recording one", file: "plan.yml",
+				from: "    environment:\n      name: plan\n      deployment: false\n", to: "    environment: plan\n",
+				want: dir + "plan.yml: job plan records a deployment on every run",
+			},
+			{
+				name: "drift.yml recording one", file: "drift.yml",
+				from: "      deployment: false\n", to: "      deployment: true\n",
+				want: dir + "drift.yml: job drift records a deployment on every run",
+			},
+			{
+				name: "apply.yml recording none", file: "apply.yml",
+				from: "    environment: apply\n", to: "    environment:\n      name: apply\n      deployment: false\n",
+				want: dir + "apply.yml: job apply records no deployment",
+			},
+			{
+				name: "drift.yml in another environment", file: "drift.yml",
+				from: "      name: apply\n", to: "      name: plan\n",
+				want: dir + "drift.yml: job drift is in environment plan, not apply",
+			},
+		},
+	},
 	// A skipped required check counts as passing, so the aggregator always
 	// runs.
 	{
@@ -609,6 +639,52 @@ func noProviderOverrides(workflows map[string]string) []string {
 				problems = append(problems, "a workflow sets a variable that overrides the provider's owner or auth ("+
 					dir+f+":"+strconv.Itoa(l.n)+")")
 			}
+		}
+	}
+	return problems
+}
+
+// deployments is each tofu workflow's job, the environment it names, and
+// whether a run of it is to record a deployment there.
+var deployments = []struct {
+	file, job, environment string
+	deploys                bool
+}{
+	{"plan.yml", "plan", "plan", false},
+	{"apply.yml", "apply", "apply", true},
+	{"drift.yml", "drift", "apply", false},
+}
+
+// environmentOf returns the environment a job names, written either as a
+// plain name or as a mapping, and whether its runs record a deployment:
+// unless deployment is false, they do.
+func environmentOf(job []line) (name string, deploys bool) {
+	if v, ok := field(job, 4, "environment"); ok && v != "" {
+		return v, true
+	}
+	env := block(job, 4, "environment")
+	return env["name"], env["deployment"] != "false"
+}
+
+func onlyApplyDeploys(workflows map[string]string) []string {
+	var problems []string
+	for _, d := range deployments {
+		if _, ok := workflows[d.file]; !ok {
+			continue
+		}
+		job, ok := jobsOf(linesOf(workflows[d.file]))[d.job]
+		if !ok {
+			problems = append(problems, dir+d.file+": no "+d.job+" job")
+			continue
+		}
+		name, deploys := environmentOf(job)
+		switch {
+		case name != d.environment:
+			problems = append(problems, dir+d.file+": job "+d.job+" is in environment "+name+", not "+d.environment)
+		case deploys && !d.deploys:
+			problems = append(problems, dir+d.file+": job "+d.job+" records a deployment on every run; its environment needs deployment: false")
+		case !deploys && d.deploys:
+			problems = append(problems, dir+d.file+": job "+d.job+" records no deployment, and its runs are the deployment history")
 		}
 	}
 	return problems

@@ -17,7 +17,12 @@ jobs:
     name: drift
     runs-on: ubuntu-26.04
     timeout-minutes: 30
-    environment: apply
+    # For the environment's secrets, not a deployment: a daily run would
+    # bury the applies in the deployment history. Its branch policy still
+    # holds without one.
+    environment:
+      name: apply
+      deployment: false
     concurrency:
       group: tofu
       cancel-in-progress: false
