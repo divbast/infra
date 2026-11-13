@@ -7,8 +7,9 @@ SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
 
 The divbast organisation, as OpenTofu: its settings, its Actions policy,
 the maintainers team, and every repository with its rulesets,
-environments and Renovate wiring. A setting changed by hand in the UI
-turns the next daily drift run red.
+environments and Renovate wiring. A hand edit in the UI to a setting the
+config states, or to one `modules/checks` reads back, turns the next
+daily drift run red.
 
 - `modules/organization`: org settings, Actions policy, workflow token
   defaults, the maintainers team.
@@ -70,7 +71,7 @@ that in the repo's settings, and the drift run stays red until they do.
 | `ci` | every PR and push | every gate (`just lint`, through divbast/ci's `lint.yml`), no secrets |
 | `plan` | PRs from this repository | the plan against the live org, on the run's summary page |
 | `apply` | push to main, or by hand | a fresh plan, applied, then `infra-settings` |
-| `drift` | daily, or by hand | red if the org differs from main or a check fails |
+| `drift` | daily, or by hand | red if a plan of main is not empty or a check fails |
 | `renovate` | daily, on merges, on CI or the plan finishing | updates, through divbast/ci's `renovate.yml`; merges its own PRs only when their plan is empty |
 | `stall` | daily, or by hand | red when updates stop flowing: a Renovate PR stuck or left open, or Renovate silent, through divbast/ci's `stall.yml` |
 
