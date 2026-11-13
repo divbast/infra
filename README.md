@@ -25,7 +25,10 @@ turns the next daily drift run red.
   manage (private vulnerability reporting, the fork-PR approval policy,
   no default code security configuration, immutable releases).
   `infra-settings` sets them through the REST API after each apply, and
-  `checks.tf` reads them back.
+  `checks.tf` reads them back. `checks.tf` also reads each repo's topics,
+  commit signoff, forking and default branch, which the provider marks
+  optional and computed: a plan never shows a hand edit to one the config
+  leaves unset or empty.
 - `cmd/infra-checks`: the drift run's filter over the JSON plan, which
   fails on any check that did not pass and prints only addresses.
 - `internal/repotest`: Go tests of this repository's own files: the
@@ -50,10 +53,11 @@ App, from ci's main-only `renovate` environment.
 `immutable_releases = true` turns on GitHub's immutable releases for a
 repo: once a release is published, its tag and assets cannot change.
 Provider 6.13.0 has no attribute for it, so `apply` sets it through the
-REST API after each apply, and `checks.tf` reads it back, which turns
-the drift run red if it is ever switched off. `ci` sets it. Setting it
-to false, or leaving it out, does not turn it off on GitHub; a person
-does that in the repo's settings.
+REST API after each apply, and `checks.tf` reads it back on every repo,
+which turns the drift run red if it is ever switched off, or switched on
+for a repo that does not set it. `ci` sets it. Setting it to false, or
+leaving it out, does not turn it off on GitHub; a person does that in the
+repo's settings, and the drift run stays red until they do.
 
 ## How it runs
 
