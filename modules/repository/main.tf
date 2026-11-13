@@ -7,6 +7,7 @@ resource "github_repository" "this" {
   homepage_url = var.settings.homepage_url
   topics       = var.settings.topics
   auto_init    = var.settings.auto_init
+  is_template  = var.settings.is_template
 
   # Private repos are billed; every divbast repo is public.
   visibility = "public"
@@ -39,6 +40,15 @@ resource "github_repository" "this" {
     }
     secret_scanning_push_protection {
       status = "enabled"
+    }
+  }
+
+  dynamic "template" {
+    for_each = var.settings.template == null ? [] : [var.settings.template]
+    content {
+      owner                = template.value.owner
+      repository           = template.value.repository
+      include_all_branches = false
     }
   }
 

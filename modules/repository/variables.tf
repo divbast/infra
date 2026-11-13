@@ -21,6 +21,15 @@ variable "settings" {
     has_issues      = optional(bool, true)
     has_discussions = optional(bool, false)
     auto_init       = optional(bool, false)
+    # Marks the repo as a template others can be created from.
+    is_template = optional(bool, false)
+    # Create the repo from a template. Only an entry that creates a new repo
+    # may set it: the provider reads it on create alone, so on an existing
+    # repo it shows a diff in every plan.
+    template = optional(object({
+      owner      = string
+      repository = string
+    }))
     # Job names whose checks must pass before a PR merges. Empty for a repo
     # with no CI.
     required_checks = optional(list(string), ["required"])

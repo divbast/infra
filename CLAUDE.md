@@ -72,6 +72,13 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   attribute for them. A repo with `immutable_releases = true` in
   `local.repositories` gets them from `scripts/immutable-releases.sh`
   after each apply, and `checks.tf` reads them back for the drift run.
+- **`template` belongs only on an entry that creates a new repo.** The
+  provider reads it on create alone, so on an existing repo it plans a
+  diff forever. A new app repo is an entry with
+  `template = { owner = "divbast", repository = "oci-image-template" }`;
+  never add it to an existing entry. `oci-image-template` itself is made
+  with `auto_init` and `is_template = true`, not from a template, and its
+  kill switch is `OCI_IMAGE_TEMPLATE_AUTOMERGE`.
 - **Destroy guards stay.** Repos are forgotten, not deleted, when removed
   from config; the org-wide resources refuse destruction, because
   destroying them resets them. `test/lifecycle.sh` holds the line.

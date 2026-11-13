@@ -78,6 +78,14 @@ locals {
       required_checks = ["required"]
       renovate        = { automerge_variable = "FRANKENPHP_AUTOMERGE" }
     }
+    oci_image_template = {
+      name            = "oci-image-template"
+      description     = "A minimal working app to start a new divbast image from"
+      auto_init       = true
+      is_template     = true
+      required_checks = ["required"]
+      renovate        = { automerge_variable = "OCI_IMAGE_TEMPLATE_AUTOMERGE" }
+    }
   }
 
   # Repos whose published releases can never change. Provider 6.13.0 has

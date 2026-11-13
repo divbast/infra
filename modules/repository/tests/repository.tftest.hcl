@@ -289,6 +289,53 @@ run "extra_environments" {
   }
 }
 
+run "no_template_by_default" {
+  command = plan
+
+  assert {
+    condition     = github_repository.this.is_template == false
+    error_message = "A repo is not a template unless it says so."
+  }
+  assert {
+    condition     = length(github_repository.this.template) == 0
+    error_message = "A repo with no template setting renders no template block."
+  }
+}
+
+run "is_template_is_passed_on" {
+  command = plan
+
+  variables {
+    settings = { description = "x", is_template = true }
+  }
+
+  assert {
+    condition     = github_repository.this.is_template == true
+    error_message = "is_template reaches the repository."
+  }
+}
+
+run "template_renders_one_block" {
+  command = plan
+
+  variables {
+    settings = { description = "x", template = { owner = "divbast", repository = "oci-image-template" } }
+  }
+
+  assert {
+    condition     = length(github_repository.this.template) == 1
+    error_message = "Exactly one template block."
+  }
+  assert {
+    condition = alltrue([
+      github_repository.this.template[0].owner == "divbast",
+      github_repository.this.template[0].repository == "oci-image-template",
+      github_repository.this.template[0].include_all_branches == false,
+    ])
+    error_message = "The block names the template and copies only its default branch."
+  }
+}
+
 run "rejects_a_bad_name" {
   command = plan
 
