@@ -86,6 +86,13 @@ locals {
       required_checks = ["required"]
       renovate        = { automerge_variable = "OCI_IMAGE_TEMPLATE_AUTOMERGE" }
     }
+    writefreely = {
+      name            = "writefreely-oci-image"
+      description     = "Security hardened WriteFreely OCI Image"
+      required_checks = ["required"]
+      renovate        = { automerge_variable = "WRITEFREELY_AUTOMERGE" }
+      template        = { owner = "divbast", repository = "oci-image-template" }
+    }
   }
 
   # Repos whose published releases can never change. Provider 6.13.0 has
