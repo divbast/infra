@@ -28,6 +28,7 @@ variables {
       name        = "app"
       description = "An app"
       template    = { owner = "divbast", repository = "oci-image-template" }
+      dhi         = true
     }
   }
 }

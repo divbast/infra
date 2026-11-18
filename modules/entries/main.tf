@@ -13,7 +13,7 @@ locals {
     "name", "description", "homepage_url", "topics", "has_issues",
     "has_discussions", "auto_init", "required_checks", "tag_creator_app_ids",
     "renovate", "environments", "immutable_releases", "is_template",
-    "template",
+    "template", "dhi",
   ]
 
   # Each key nothing reads, as entry.key.

@@ -345,3 +345,84 @@ run "rejects_a_bad_name" {
 
   expect_failures = [var.name]
 }
+
+run "dhi_writes_token_and_username" {
+  command = plan
+
+  variables {
+    settings     = { description = "x", dhi = true }
+    dhi_token    = "test-dhi-token"
+    dhi_username = "test-dhi-user"
+  }
+
+  assert {
+    condition = alltrue([
+      github_actions_secret.dhi_token.repository == "example",
+      github_actions_secret.dhi_token.secret_name == "DHI_TOKEN",
+      github_actions_secret.dhi_token.value == "test-dhi-token",
+    ])
+    error_message = "A dhi repo gets the repo secret DHI_TOKEN, holding the token."
+  }
+  assert {
+    condition = alltrue([
+      github_actions_variable.dhi_username.repository == "example",
+      github_actions_variable.dhi_username.variable_name == "DHI_USERNAME",
+      github_actions_variable.dhi_username.value == "test-dhi-user",
+    ])
+    error_message = "A dhi repo gets the repo variable DHI_USERNAME, holding the username."
+  }
+}
+
+run "no_dhi_no_secret" {
+  command = plan
+
+  # Even with both given: an entry that does not build on DHI gets neither.
+  variables {
+    dhi_token    = "test-dhi-token"
+    dhi_username = "test-dhi-user"
+  }
+
+  assert {
+    condition = alltrue([
+      github_actions_secret.dhi_token == null,
+      github_actions_variable.dhi_username == null,
+    ])
+    error_message = "Without dhi = true, neither the secret nor the variable exists."
+  }
+}
+
+run "no_dhi_needs_no_token" {
+  command = plan
+
+  # The empty defaults must not trip the preconditions of a disabled
+  # resource: every repo but the DHI ones has no token to give.
+  assert {
+    condition     = github_actions_secret.dhi_token == null
+    error_message = "A repo without dhi = true plans with no token given."
+  }
+}
+
+run "dhi_without_token_fails" {
+  command = plan
+
+  variables {
+    settings     = { description = "x", dhi = true }
+    dhi_token    = ""
+    dhi_username = "test-dhi-user"
+  }
+
+  # Each resource carries the check, so each reports it.
+  expect_failures = [github_actions_secret.dhi_token, github_actions_variable.dhi_username]
+}
+
+run "dhi_without_username_fails" {
+  command = plan
+
+  variables {
+    settings     = { description = "x", dhi = true }
+    dhi_token    = "test-dhi-token"
+    dhi_username = ""
+  }
+
+  expect_failures = [github_actions_secret.dhi_token, github_actions_variable.dhi_username]
+}

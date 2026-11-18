@@ -93,6 +93,14 @@ locals {
       renovate        = { automerge_variable = "WRITEFREELY_AUTOMERGE" }
       template        = { owner = "divbast", repository = "oci-image-template" }
     }
+    prowlarr = {
+      name            = "prowlarr-oci-image"
+      description     = "Security hardened Prowlarr OCI Image"
+      required_checks = ["required"]
+      renovate        = { automerge_variable = "PROWLARR_AUTOMERGE" }
+      template        = { owner = "divbast", repository = "oci-image-template" }
+      dhi             = true
+    }
   }
 
   # Repos whose published releases can never change. Provider 6.13.0 has
@@ -121,6 +129,8 @@ module "repository" {
   maintainers_team_id      = module.organization.maintainers_team_id
   renovate_app_client_id   = var.renovate_app_client_id
   renovate_app_private_key = var.renovate_app_private_key
+  dhi_username             = var.dhi_username
+  dhi_token                = var.dhi_token
 }
 
 # Reads back what a plan cannot compare. A failed check is only a warning

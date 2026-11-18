@@ -30,3 +30,20 @@ variable "renovate_app_private_key" {
   # 6.13.0 has no write-only attributes (integrations/terraform-provider-github#3202).
   nullable = false
 }
+
+variable "dhi_username" {
+  description = "Docker Hardened Images username, written as DHI_USERNAME into each repo whose entry has dhi = true."
+  type        = string
+  default     = ""
+  nullable    = false
+}
+
+variable "dhi_token" {
+  description = "Docker Hardened Images token, written as DHI_TOKEN into each repo whose entry has dhi = true."
+  type        = string
+  sensitive   = true
+  default     = ""
+  # Not ephemeral: the token lands in a resource attribute, and provider
+  # 6.13.0 has no write-only attributes (integrations/terraform-provider-github#3202).
+  nullable = false
+}

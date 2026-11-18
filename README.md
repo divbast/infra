@@ -16,7 +16,8 @@ daily drift run red.
 - `modules/repository`: one repository's baseline: public; merge commits
   and squash only; signed commits, a PR and passing checks on the default
   branch; tags guarded by two rulesets (below); Renovate's environment and
-  kill switch.
+  kill switch; and, for entries with `dhi = true`, the DHI login (secret
+  `DHI_TOKEN`, variable `DHI_USERNAME`).
 - `main.tf`: every repository, as one entry in `local.repositories`.
 - `modules/entries`: those entries as written. It fails the plan on an
   entry's own key that nothing reads, which conversion to the repository
@@ -95,6 +96,14 @@ runs `just init` first, which needs no state or credentials. The gates
 that call GitHub need a fine-grained `GITHUB_TOKEN`; see
 [ci's README](https://github.com/divbast/ci#local-github-token).
 
+`secrets/` holds what the maintainer needs on their own machines,
+encrypted with sops to their age key (`.sops.yaml`):
+`secrets/dhi.sops.yaml` has the Docker Hardened Images token and
+username (`dhi_token`, `dhi_username`), for local builds, image
+verification and Renovate lookups against `dhi.io`. Edit it with
+`sops edit secrets/dhi.sops.yaml`. Nothing in CI decrypts it: the
+workflows read their copies from the environments, set by hand.
+
 ## Adding a repository
 
 Add one entry to `local.repositories` in `main.tf` and open a PR. A key
@@ -110,6 +119,11 @@ all repositories, so a new one needs nothing by hand. A repo that runs
 Renovate names its kill switch, e.g. `BAIKAL_AUTOMERGE`. A repo that
 publishes releases may set `tag_creator_app_ids` and
 `immutable_releases`, as `ci` does.
+
+An entry with `dhi = true` builds on Docker Hardened Images (`dhi.io`):
+infra writes its repo the secret `DHI_TOKEN` and the variable
+`DHI_USERNAME`, which the repo's workflows pass to ci. The plan fails if
+either is missing from infra's environments.
 
 From here on, a new app repo is an entry with
 `template = { owner = "divbast", repository = "oci-image-template" }`.
@@ -160,13 +174,18 @@ merging back on.
 6. This repository, created empty (its first commit is pushed as `main`),
    and its environments `plan` (any branch) and `apply` (main only), each
    holding:
-   - variables `INFRA_APP_CLIENT_ID`, `RENOVATE_APP_CLIENT_ID`, `B2_KEY_ID`
+   - variables `INFRA_APP_CLIENT_ID`, `RENOVATE_APP_CLIENT_ID`, `B2_KEY_ID`,
+     `DHI_USERNAME`
    - secrets `INFRA_APP_PRIVATE_KEY`, `RENOVATE_APP_PRIVATE_KEY`,
-     `STATE_PASSPHRASE`, `B2_APPLICATION_KEY`
+     `STATE_PASSPHRASE`, `B2_APPLICATION_KEY`, `DHI_TOKEN`
 
    `plan` gets the read-only B2 key and `apply` the read-write one.
    OpenTofu manages the environments but never these values: it would
-   need its own credentials as inputs.
+   need its own credentials as inputs. `DHI_TOKEN` and `DHI_USERNAME` are
+   the Docker Hardened Images login, the same one as in
+   `secrets/dhi.sops.yaml` (see "Working here"); the workflows pass them
+   as `TF_VAR_dhi_token` and `TF_VAR_dhi_username`, and tofu never reads
+   the sops file.
 7. Verify `divbast.ameri.coffee` (org Settings, then Verified and approved
    domains) with the DNS TXT record GitHub shows.
 8. No payment method on the org: usage past the free allowance is then
@@ -197,3 +216,12 @@ method's `fallback`, and supply both passphrases. Apply once, which
 rewrites state under `v2`, then remove `v1` and the old passphrase. The
 key providers are named by version because the metadata stored with the
 state is keyed by name.
+
+## Rotating the DHI token
+
+Change three things together: `secrets/dhi.sops.yaml` (`sops edit`), the
+`plan` environment's `DHI_TOKEN` and the `apply` environment's
+`DHI_TOKEN`. An apply then writes the new token to every `dhi = true`
+repo. They must agree: if `plan` and `apply` differ, every PR's plan shows
+a secret update and Renovate's plan-empty check goes red. If only the
+environments change, drift stays red until an apply.
