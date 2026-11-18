@@ -85,6 +85,7 @@ locals {
       is_template     = true
       required_checks = ["required"]
       renovate        = { automerge_variable = "OCI_IMAGE_TEMPLATE_AUTOMERGE" }
+      dhi             = true
     }
     writefreely = {
       name            = "writefreely-oci-image"
