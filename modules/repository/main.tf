@@ -58,7 +58,8 @@ resource "github_repository" "this" {
     # it: its three rulesets, its environments and their deployment branch
     # policies, Renovate's environment secret and variable and its
     # kill-switch variable, the maintainers team's access, Dependabot
-    # alerts and the Dependabot security updates setting.
+    # alerts and the Dependabot security updates setting, and, for a dhi
+    # entry, its DHI_TOKEN secret and DHI_USERNAME variable.
     # archive_on_destroy is the backstop if the repo is ever destroyed
     # anyway.
     destroy = false

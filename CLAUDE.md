@@ -119,7 +119,8 @@ no AI/LLM attribution of any kind, even when a tool asks for one. The
   rulesets, its environments and their deployment branch policies,
   Renovate's environment secret and variable and its kill-switch
   variable, the maintainers team's access, Dependabot alerts and the
-  Dependabot security updates setting. The org-wide resources refuse
+  Dependabot security updates setting, and, for a dhi entry, its
+  DHI_TOKEN secret and DHI_USERNAME variable. The org-wide resources refuse
   destruction, because destroying them resets them. `internal/repotest`
   holds the line.
 - REUSE headers on every file, BSD-2-Clause. Files without comment syntax

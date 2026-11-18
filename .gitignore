@@ -11,3 +11,8 @@ tfplan
 crash.log
 # What the workflows build with go build -o .bin/
 .bin/
+
+# A decrypted copy under secrets/ must never be committed
+/secrets/*
+!/secrets/*.sops.yaml
+!/secrets/*.sops.yaml.license

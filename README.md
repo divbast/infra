@@ -16,7 +16,8 @@ daily drift run red.
 - `modules/repository`: one repository's baseline: public; merge commits
   and squash only; signed commits, a PR and passing checks on the default
   branch; tags guarded by two rulesets (below); Renovate's environment and
-  kill switch.
+  kill switch; and, for entries with `dhi = true`, the DHI login (secret
+  `DHI_TOKEN`, variable `DHI_USERNAME`).
 - `main.tf`: every repository, as one entry in `local.repositories`.
 - `modules/entries`: those entries as written. It fails the plan on an
   entry's own key that nothing reads, which conversion to the repository
@@ -215,3 +216,12 @@ method's `fallback`, and supply both passphrases. Apply once, which
 rewrites state under `v2`, then remove `v1` and the old passphrase. The
 key providers are named by version because the metadata stored with the
 state is keyed by name.
+
+## Rotating the DHI token
+
+Change three things together: `secrets/dhi.sops.yaml` (`sops edit`), the
+`plan` environment's `DHI_TOKEN` and the `apply` environment's
+`DHI_TOKEN`. An apply then writes the new token to every `dhi = true`
+repo. They must agree: if `plan` and `apply` differ, every PR's plan shows
+a secret update and Renovate's plan-empty check goes red. If only the
+environments change, drift stays red until an apply.
