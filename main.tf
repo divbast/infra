@@ -121,6 +121,8 @@ module "repository" {
   maintainers_team_id      = module.organization.maintainers_team_id
   renovate_app_client_id   = var.renovate_app_client_id
   renovate_app_private_key = var.renovate_app_private_key
+  dhi_username             = var.dhi_username
+  dhi_token                = var.dhi_token
 }
 
 # Reads back what a plan cannot compare. A failed check is only a warning

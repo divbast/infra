@@ -42,6 +42,9 @@ variable "settings" {
     renovate = optional(object({
       automerge_variable = string
     }))
+    # The repo builds on Docker Hardened Images (dhi.io): it gets the repo
+    # secret DHI_TOKEN and the repo variable DHI_USERNAME for ci to log in.
+    dhi = optional(bool, false)
     # Further environments, holding secrets set by hand. main_only limits
     # deployments to main.
     environments = optional(map(object({
@@ -67,5 +70,20 @@ variable "renovate_app_private_key" {
   description = "Private key of the divbast-renovate App."
   type        = string
   sensitive   = true
+  nullable    = false
+}
+
+variable "dhi_username" {
+  description = "Docker Hardened Images username, for a repo with dhi = true."
+  type        = string
+  default     = ""
+  nullable    = false
+}
+
+variable "dhi_token" {
+  description = "Docker Hardened Images token, for a repo with dhi = true."
+  type        = string
+  sensitive   = true
+  default     = ""
   nullable    = false
 }

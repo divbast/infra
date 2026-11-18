@@ -119,6 +119,11 @@ Renovate names its kill switch, e.g. `BAIKAL_AUTOMERGE`. A repo that
 publishes releases may set `tag_creator_app_ids` and
 `immutable_releases`, as `ci` does.
 
+An entry with `dhi = true` builds on Docker Hardened Images (`dhi.io`):
+infra writes its repo the secret `DHI_TOKEN` and the variable
+`DHI_USERNAME`, which the repo's workflows pass to ci. The plan fails if
+either is missing from infra's environments.
+
 From here on, a new app repo is an entry with
 `template = { owner = "divbast", repository = "oci-image-template" }`.
 The provider uses `template` only to create the repo, but on every
@@ -168,13 +173,18 @@ merging back on.
 6. This repository, created empty (its first commit is pushed as `main`),
    and its environments `plan` (any branch) and `apply` (main only), each
    holding:
-   - variables `INFRA_APP_CLIENT_ID`, `RENOVATE_APP_CLIENT_ID`, `B2_KEY_ID`
+   - variables `INFRA_APP_CLIENT_ID`, `RENOVATE_APP_CLIENT_ID`, `B2_KEY_ID`,
+     `DHI_USERNAME`
    - secrets `INFRA_APP_PRIVATE_KEY`, `RENOVATE_APP_PRIVATE_KEY`,
-     `STATE_PASSPHRASE`, `B2_APPLICATION_KEY`
+     `STATE_PASSPHRASE`, `B2_APPLICATION_KEY`, `DHI_TOKEN`
 
    `plan` gets the read-only B2 key and `apply` the read-write one.
    OpenTofu manages the environments but never these values: it would
-   need its own credentials as inputs.
+   need its own credentials as inputs. `DHI_TOKEN` and `DHI_USERNAME` are
+   the Docker Hardened Images login, the same one as in
+   `secrets/dhi.sops.yaml` (see "Working here"); the workflows pass them
+   as `TF_VAR_dhi_token` and `TF_VAR_dhi_username`, and tofu never reads
+   the sops file.
 7. Verify `divbast.ameri.coffee` (org Settings, then Verified and approved
    domains) with the DNS TXT record GitHub shows.
 8. No payment method on the org: usage past the free allowance is then
