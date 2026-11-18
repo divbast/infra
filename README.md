@@ -95,6 +95,14 @@ runs `just init` first, which needs no state or credentials. The gates
 that call GitHub need a fine-grained `GITHUB_TOKEN`; see
 [ci's README](https://github.com/divbast/ci#local-github-token).
 
+`secrets/` holds what the maintainer needs on their own machines,
+encrypted with sops to their age key (`.sops.yaml`):
+`secrets/dhi.sops.yaml` has the Docker Hardened Images token and
+username (`dhi_token`, `dhi_username`), for local builds, image
+verification and Renovate lookups against `dhi.io`. Edit it with
+`sops edit secrets/dhi.sops.yaml`. Nothing in CI decrypts it: the
+workflows read their copies from the environments, set by hand.
+
 ## Adding a repository
 
 Add one entry to `local.repositories` in `main.tf` and open a PR. A key
