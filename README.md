@@ -123,7 +123,9 @@ publishes releases may set `tag_creator_app_ids` and
 An entry with `dhi = true` builds on Docker Hardened Images (`dhi.io`):
 infra writes its repo the secret `DHI_TOKEN` and the variable
 `DHI_USERNAME`, which the repo's workflows pass to ci. The plan fails if
-either is missing from infra's environments.
+either is missing from infra's environments. The template's entry sets it
+too, because its CI verifies and lints the .NET layer's DHI images and its
+Renovate moves them.
 
 From here on, a new app repo is an entry with
 `template = { owner = "divbast", repository = "oci-image-template" }`.
