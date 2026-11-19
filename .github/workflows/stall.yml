@@ -38,3 +38,4 @@ jobs:
       checks: read # read each pull request's check runs
       statuses: read # and its commit statuses
       packages: read # what stall.yml's job asks for, though slots is not run
+      issues: read # read the Dependency Dashboard
