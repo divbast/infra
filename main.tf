@@ -93,6 +93,7 @@ locals {
       required_checks = ["required"]
       renovate        = { automerge_variable = "WRITEFREELY_AUTOMERGE" }
       template        = { owner = "divbast", repository = "oci-image-template" }
+      dhi             = true
     }
     prowlarr = {
       name            = "prowlarr-oci-image"
