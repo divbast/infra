@@ -16,7 +16,7 @@ permissions: {}
 # moves it.
 env:
   # renovate: datasource=github-releases depName=jdx/mise
-  MISE_VERSION: 2026.11.11
+  MISE_VERSION: 2026.11.12
 
 jobs:
   apply:
