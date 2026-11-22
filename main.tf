@@ -119,6 +119,18 @@ locals {
       template        = { owner = "divbast", repository = "oci-image-template" }
       dhi             = true
     }
+    pisati = {
+      name            = "pisati"
+      description     = "Pisati: a secure, minimalist, federated blogging platform"
+      required_checks = ["required"]
+      renovate        = { automerge_variable = "PISATI_AUTOMERGE" }
+      template        = { owner = "divbast", repository = "oci-image-template" }
+      dhi             = true
+      # Releases are tagged by the Renovate App, as ci's are, and stay
+      # immutable once published.
+      tag_creator_app_ids = [local.renovate_app_id]
+      immutable_releases  = true
+    }
   }
 
   # Repos whose published releases can never change. Provider 6.13.0 has
