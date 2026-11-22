@@ -44,7 +44,7 @@ permissions: {}
 jobs:
   renovate:
     name: renovate
-    uses: divbast/ci/.github/workflows/renovate.yml@f63f115bdc6a04ca5e4ac24aeed95527ab99c9e4 # v4.9.0
+    uses: divbast/ci/.github/workflows/renovate.yml@73699e1f3d8869476193e4405288c821fd27f982 # v4.12.0
     with:
       automerge: ${{ vars.INFRA_AUTOMERGE == 'enabled' }}
     # The App's key lives in this repository's `renovate` environment, and a
