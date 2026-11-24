@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Aryan Ameri <github@aryan.ameri.coffee>
 
 [tools]
-"aqua:opentofu/opentofu" = "1.13.9"
+"aqua:opentofu/opentofu" = "1.13.10"
 "aqua:terraform-linters/tflint" = "0.66.0"
 
 "core:go" = "1.27.4"
