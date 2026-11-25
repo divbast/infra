@@ -119,6 +119,14 @@ locals {
       template        = { owner = "divbast", repository = "oci-image-template" }
       dhi             = true
     }
+    radarr = {
+      name            = "radarr-oci-image"
+      description     = "Security hardened Radarr OCI Image"
+      required_checks = ["required"]
+      renovate        = { automerge_variable = "RADARR_AUTOMERGE" }
+      template        = { owner = "divbast", repository = "oci-image-template" }
+      dhi             = true
+    }
     pisati = {
       name            = "pisati"
       description     = "Pisati: a secure, minimalist, federated blogging platform"
