@@ -135,6 +135,14 @@ locals {
       template        = { owner = "divbast", repository = "oci-image-template" }
       dhi             = true
     }
+    calibre = {
+      name            = "calibre-oci-image"
+      description     = "Security hardened Calibre and Calibre-Web OCI Image"
+      required_checks = ["required"]
+      renovate        = { automerge_variable = "CALIBRE_AUTOMERGE" }
+      template        = { owner = "divbast", repository = "oci-image-template" }
+      dhi             = true
+    }
     pisati = {
       name            = "pisati"
       description     = "Pisati: a secure, minimalist, federated blogging platform"
