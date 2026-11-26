@@ -127,6 +127,14 @@ locals {
       template        = { owner = "divbast", repository = "oci-image-template" }
       dhi             = true
     }
+    sabnzbd = {
+      name            = "sabnzbd-oci-image"
+      description     = "Security hardened SABnzbd OCI Image"
+      required_checks = ["required"]
+      renovate        = { automerge_variable = "SABNZBD_AUTOMERGE" }
+      template        = { owner = "divbast", repository = "oci-image-template" }
+      dhi             = true
+    }
     pisati = {
       name            = "pisati"
       description     = "Pisati: a secure, minimalist, federated blogging platform"
